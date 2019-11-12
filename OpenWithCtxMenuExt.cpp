@@ -1,13 +1,25 @@
 // OpenWithCtxMenuExt.cpp : Implementation of COpenWithCtxMenuExt
 
 #include "stdafx.h"
+#include <string>
+#include <algorithm>
 #include "OpenWithExt.h"
 #include "OpenWithCtxMenuExt.h"
+#include <windows.h>
+#include <stdio.h>
 
 #pragma comment(lib,"shlwapi")
 
 /////////////////////////////////////////////////////////////////////////////
 // COpenWithCtxMenuExt
+
+std::string getExtension(const char* charString) {
+	std::string str(charString);
+	std::size_t startIndex = str.find_last_of(".");
+	std::string sl = str.substr(startIndex + 1, str.size() - startIndex - 2);
+	std::transform(sl.begin(), sl.end(), sl.begin(), ::tolower);
+	return sl;
+}
 
 HRESULT COpenWithCtxMenuExt::Initialize ( LPCITEMIDLIST pidlFolder,
                                           LPDATAOBJECT pDataObj,
@@ -63,6 +75,22 @@ HRESULT hr = S_OK;
     return hr;
 }
 
+
+// VWX extensions
+std::string EXT_VWX("vwx");
+
+// PHOTOGRAM extensions
+std::string EXT_TIFF("tiff");
+std::string EXT_TIF("tif");
+std::string EXT_SVG("svg");
+std::string EXT_PNG("png");
+std::string EXT_JPG("jpg");
+std::string EXT_JPEG("jpeg");
+std::string EXT_ICO("ico");
+std::string EXT_GIF("gif");
+std::string EXT_BMP("bmp");
+
+
 HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex, 
                                                 UINT  uidFirstCmd, UINT  uidLastCmd,
                                                 UINT  uFlags )
@@ -75,16 +103,38 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 HMENU hSubmenu = CreatePopupMenu();
 UINT uID = uidFirstCmd;
 
-    InsertMenu ( hSubmenu, 0, MF_BYPOSITION, uID++, _T("&Notepad") );
-    InsertMenu ( hSubmenu, 1, MF_BYPOSITION, uID++, _T("&Internet Explorer") );
+	std::string ext = getExtension(m_szSelectedFile);
 
+	
+	if (ext.compare(EXT_VWX) == 0) {
+		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("Generate &PDF"));
+		InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("Generate 3D &model"));
+	}
+
+	if (
+		ext.compare(EXT_TIFF) == 0 ||
+		ext.compare(EXT_TIF) == 0 ||
+		ext.compare(EXT_SVG) == 0 ||
+		ext.compare(EXT_PNG) == 0 ||
+		ext.compare(EXT_JPG) == 0 ||
+		ext.compare(EXT_JPEG) == 0 ||
+		ext.compare(EXT_ICO) == 0 ||
+		ext.compare(EXT_GIF) == 0 ||
+		ext.compare(EXT_BMP) == 0
+	) {
+		InsertMenu(hSubmenu, 2, MF_BYPOSITION, uID++, _T("&Photos to 3D model"));
+	}
+	
+    InsertMenu ( hSubmenu, 3, MF_BYPOSITION, uID++, _T("&Share") );
+    InsertMenu ( hSubmenu, 4, MF_BYPOSITION, uID++, _T("Shareable &link") );
+    
     // Insert the submenu into the ctx menu provided by Explorer.
 MENUITEMINFO mii = { sizeof(MENUITEMINFO) };
 
     mii.fMask = MIIM_SUBMENU | MIIM_STRING | MIIM_ID;
     mii.wID = uID++;
     mii.hSubMenu = hSubmenu;
-    mii.dwTypeData = _T("C&P Open With");
+    mii.dwTypeData = _T("Vectorworks Cloud Services");
 
     InsertMenuItem ( hmenu, uMenuIndex, TRUE, &mii );
 
@@ -97,17 +147,16 @@ HRESULT COpenWithCtxMenuExt::GetCommandString (UINT_PTR  idCmd,      UINT uFlags
 {
 USES_CONVERSION;
 
-    // Check idCmd, it must be 0 or 1 since we have two menu items.
-    if ( idCmd > 1 )
+    // Check idCmd, it must be 0 or 4 since we have max five menu items.
+    if ( idCmd > 4 )
         return E_INVALIDARG;
 
     // If Explorer is asking for a help string, copy our string into the
     // supplied buffer.
     if ( uFlags & GCS_HELPTEXT )
         {
-        LPCTSTR szNotepadText = _T("Open the selected file in Notepad");
-        LPCTSTR szIEText = _T("Open the selected file in Internet Explorer");
-        LPCTSTR pszText = (0 == idCmd) ? szNotepadText : szIEText;
+
+        LPCTSTR pszText = "";
 
         if ( uFlags & GCS_UNICODE )
             {
@@ -127,6 +176,55 @@ USES_CONVERSION;
     return E_INVALIDARG;
 }
 
+std::string ENV_PROD("prod");
+std::string ENV_BETA("beta");
+std::string ENV_QA("qa");
+std::string ENV_DEVEL("devel");
+
+const std::string ENV_ARRAY[] = { ENV_PROD, ENV_BETA, ENV_QA, ENV_DEVEL };
+
+int executeAction(std::string action, std::string args)
+{
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+
+	std::string base("cmd /C C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-");
+	std::string result("");
+
+	for (int i = 2; i < ENV_ARRAY->size(); i++) {
+		result.append(base);
+		result.append(ENV_ARRAY[i]);
+		result.append(std::string("\\resources\\context_actions\\"));
+		result.append(action);
+		result.append(std::string(".bat \""));
+		result.append(args);
+
+		if (i == ENV_ARRAY->size() - 1) {
+			result.append(std::string("\""));
+		}
+		else {
+			result.append(std::string("\" || "));
+		}
+	}
+
+	std::wstring wide_string = std::wstring(result.begin(), result.end());
+	const wchar_t* _command = wide_string.c_str();
+	wchar_t* command = const_cast<wchar_t*>(_command);
+
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	ZeroMemory(&pi, sizeof(pi));
+	if (!CreateProcess(NULL, command, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+	{
+		printf("CreateProcess failed (%d)\n", GetLastError());
+		return FALSE;
+	}
+	WaitForSingleObject(pi.hProcess, INFINITE);
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+	return 0;
+}
+
 HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo )
 {
     // If lpVerb really points to a string, ignore this function call and bail out.
@@ -138,16 +236,34 @@ HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo )
         {
         case 0:
             {
-            ShellExecute ( pCmdInfo->hwnd, _T("open"), _T("notepad.exe"),
+			executeAction("pdf_export")
+
+            return S_OK;
+            }
+        break;        case 1:
+            {
+            ShellExecute ( pCmdInfo->hwnd, _T("open"), _T("C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\distill.bat"),
                            m_szSelectedFile, NULL, SW_SHOW );
 
             return S_OK;
             }
-        break;
-
-        case 1:
+        break;        case 2:
             {
-            ShellExecute ( pCmdInfo->hwnd, _T("open"), _T("iexplore.exe"),
+            ShellExecute ( pCmdInfo->hwnd, _T("open"), _T("C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\distill.bat"),
+                           m_szSelectedFile, NULL, SW_SHOW );
+
+            return S_OK;
+            }
+        break;        case 3:
+            {
+            ShellExecute ( pCmdInfo->hwnd, _T("open"), _T("C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\distill.bat"),
+                           m_szSelectedFile, NULL, SW_SHOW );
+
+            return S_OK;
+            }
+        break;        case 4:
+            {
+            ShellExecute ( pCmdInfo->hwnd, _T("open"), _T("C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\distill.bat"),
                            m_szSelectedFile, NULL, SW_SHOW );
 
             return S_OK;
