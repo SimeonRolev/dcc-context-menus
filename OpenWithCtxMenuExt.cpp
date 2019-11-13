@@ -237,7 +237,11 @@ int executeAction(std::string action, std::string args)
 	result.append(".bat ");
 	result.append(args);
 
-	wchar_t* command = stringToWChar(result);
+	std::wstring wide_string = std::wstring(result.begin(), result.end());
+	const wchar_t* _command = wide_string.c_str();
+	wchar_t* command = const_cast<wchar_t*>(_command);
+
+	// wchar_t* command = stringToWChar(result);
 
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
