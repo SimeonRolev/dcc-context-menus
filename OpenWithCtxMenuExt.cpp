@@ -75,7 +75,6 @@ HRESULT hr = S_OK;
     return hr;
 }
 
-
 // VWX extensions
 std::string EXT_VWX("vwx");
 
@@ -90,6 +89,20 @@ std::string EXT_ICO("ico");
 std::string EXT_GIF("gif");
 std::string EXT_BMP("bmp");
 
+bool isPhotogramType(std::string ext) {
+	if (
+		ext.compare(EXT_TIFF) == 0 ||
+		ext.compare(EXT_TIF) == 0 ||
+		ext.compare(EXT_SVG) == 0 ||
+		ext.compare(EXT_PNG) == 0 ||
+		ext.compare(EXT_JPG) == 0 ||
+		ext.compare(EXT_JPEG) == 0 ||
+		ext.compare(EXT_ICO) == 0 ||
+		ext.compare(EXT_GIF) == 0 ||
+		ext.compare(EXT_BMP) == 0
+		) return true;
+	return false;
+}
 
 HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex, 
                                                 UINT  uidFirstCmd, UINT  uidLastCmd,
@@ -111,17 +124,7 @@ UINT uID = uidFirstCmd;
 		InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("Generate 3D &model"));
 	}
 
-	if (
-		ext.compare(EXT_TIFF) == 0 ||
-		ext.compare(EXT_TIF) == 0 ||
-		ext.compare(EXT_SVG) == 0 ||
-		ext.compare(EXT_PNG) == 0 ||
-		ext.compare(EXT_JPG) == 0 ||
-		ext.compare(EXT_JPEG) == 0 ||
-		ext.compare(EXT_ICO) == 0 ||
-		ext.compare(EXT_GIF) == 0 ||
-		ext.compare(EXT_BMP) == 0
-	) {
+	if (isPhotogramType(ext)) {
 		InsertMenu(hSubmenu, 2, MF_BYPOSITION, uID++, _T("&Photos to 3D model"));
 	}
 	
@@ -146,32 +149,17 @@ HRESULT COpenWithCtxMenuExt::GetCommandString (UINT_PTR  idCmd,      UINT uFlags
                                                 UINT  cchMax )
 {
 USES_CONVERSION;
-
     // Check idCmd, it must be 0 or 4 since we have max five menu items.
-    if ( idCmd > 4 )
-        return E_INVALIDARG;
+    if ( idCmd > 4 ) return E_INVALIDARG;
 
-    // If Explorer is asking for a help string, copy our string into the
-    // supplied buffer.
-    if ( uFlags & GCS_HELPTEXT )
-        {
-
+    if ( uFlags & GCS_HELPTEXT ) {
         LPCTSTR pszText = "";
 
-        if ( uFlags & GCS_UNICODE )
-            {
-            // We need to cast pszName to a Unicode string, and then use the
-            // Unicode string copy API.
-            lstrcpynW ( (LPWSTR) pszName, T2CW(pszText), cchMax );
-            }
-        else
-            {
-            // Use the ANSI string copy API to return the help string.
-            lstrcpynA ( pszName, T2CA(pszText), cchMax );
-            }
+        if ( uFlags & GCS_UNICODE ) lstrcpynW((LPWSTR)pszName, T2CW(pszText), cchMax);
+        else lstrcpynA(pszName, T2CA(pszText), cchMax);
 
         return S_OK;
-        }
+    }
 
     return E_INVALIDARG;
 }
@@ -185,10 +173,10 @@ const std::string ENV_ARRAY[] = { ENV_PROD, ENV_BETA, ENV_QA, ENV_DEVEL };
 
 int executeAction(std::string action, std::string args)
 {
-	STARTUPINFO si;
+	STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
 
-	std::string base("cmd /C C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-");
+	std::string base("cmd /K C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-");
 	std::string result("");
 
 	for (int i = 2; i < ENV_ARRAY->size(); i++) {
@@ -196,14 +184,11 @@ int executeAction(std::string action, std::string args)
 		result.append(ENV_ARRAY[i]);
 		result.append(std::string("\\resources\\context_actions\\"));
 		result.append(action);
-		result.append(std::string(".bat \""));
+		result.append(std::string(".bat "));
 		result.append(args);
 
-		if (i == ENV_ARRAY->size() - 1) {
-			result.append(std::string("\""));
-		}
-		else {
-			result.append(std::string("\" || "));
+		if (i != ENV_ARRAY->size() - 1) {
+			result.append(std::string(" || "));
 		}
 	}
 
@@ -214,7 +199,8 @@ int executeAction(std::string action, std::string args)
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
-	if (!CreateProcess(NULL, command, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+
+	if (!CreateProcessW(NULL, command, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
 	{
 		printf("CreateProcess failed (%d)\n", GetLastError());
 		return FALSE;
@@ -225,53 +211,40 @@ int executeAction(std::string action, std::string args)
 	return 0;
 }
 
-HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo )
-{
-    // If lpVerb really points to a string, ignore this function call and bail out.
-    if ( 0 != HIWORD( pCmdInfo->lpVerb ))
-        return E_INVALIDARG;
+HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
+	std::string args(m_szSelectedFile);
+	std::string ext = getExtension(m_szSelectedFile);
 
-    // Get the command index.
-    switch ( LOWORD( pCmdInfo->lpVerb ))
-        {
-        case 0:
-            {
-			executeAction("pdf_export")
+	if (ext.compare(EXT_VWX) == 0) {
+		if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
 
-            return S_OK;
-            }
-        break;        case 1:
-            {
-            ShellExecute ( pCmdInfo->hwnd, _T("open"), _T("C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\distill.bat"),
-                           m_szSelectedFile, NULL, SW_SHOW );
+		switch (LOWORD(pCmdInfo->lpVerb)) {
+			case 0: { executeAction("pdf_export", args); return S_OK; }
+			case 1: { executeAction("distill", args); return S_OK; }
+			case 2: { executeAction("share", args); return S_OK; }
+			case 3: { executeAction("link", args); return S_OK; }
+			default: return E_INVALIDARG;
+		}
+	}
 
-            return S_OK;
-            }
-        break;        case 2:
-            {
-            ShellExecute ( pCmdInfo->hwnd, _T("open"), _T("C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\distill.bat"),
-                           m_szSelectedFile, NULL, SW_SHOW );
+	else if (isPhotogramType(ext)) {
+		if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
 
-            return S_OK;
-            }
-        break;        case 3:
-            {
-            ShellExecute ( pCmdInfo->hwnd, _T("open"), _T("C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\distill.bat"),
-                           m_szSelectedFile, NULL, SW_SHOW );
+		switch (LOWORD(pCmdInfo->lpVerb)) {
+			case 0: { executeAction("photogram", args); return S_OK; }
+			case 1: { executeAction("share", args); return S_OK; }
+			case 2: { executeAction("link", args); return S_OK; }
+			default: return E_INVALIDARG;
+		}
+	} else {
+		if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
 
-            return S_OK;
-            }
-        break;        case 4:
-            {
-            ShellExecute ( pCmdInfo->hwnd, _T("open"), _T("C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\distill.bat"),
-                           m_szSelectedFile, NULL, SW_SHOW );
+		switch (LOWORD(pCmdInfo->lpVerb)) {
+			case 0: { executeAction("share", args); return S_OK; }
+			case 1: { executeAction("link", args); return S_OK; }
+			default: return E_INVALIDARG;
+		}
+	}
 
-            return S_OK;
-            }
-        break;
-
-        default:
-            return E_INVALIDARG;
-        break;
-        }
+	return E_INVALIDARG;
 }
