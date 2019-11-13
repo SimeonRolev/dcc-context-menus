@@ -7,6 +7,9 @@
 #include "OpenWithCtxMenuExt.h"
 #include <windows.h>
 #include <stdio.h>
+#include "Shlwapi.h"
+#include <Lmcons.h>
+#include <string.h> 
 
 #pragma comment(lib,"shlwapi")
 
@@ -171,30 +174,70 @@ std::string ENV_DEVEL("devel");
 
 const std::string ENV_ARRAY[] = { ENV_PROD, ENV_BETA, ENV_QA, ENV_DEVEL };
 
+wchar_t* stringToWChar(std::string s) {
+	std::wstring wide_string = std::wstring(s.begin(), s.end());
+	const wchar_t* _res = wide_string.c_str();
+	return const_cast<wchar_t*>(_res);
+}
+
+std::string getUsername() {
+	char _username[UNLEN + 1];
+	DWORD size = UNLEN + 1;
+	bool u = GetUserName((TCHAR*)_username, &size);
+
+	return std::string(_username);
+}
+
+std::string _getBaseRoot() {
+	std::string BASE_ROOT("C:\\Users\\");
+	BASE_ROOT.append(getUsername());
+	BASE_ROOT.append("\\AppData\\Local\\Programs\\vectorworks-cloud-services-");
+	return BASE_ROOT;
+}
+
+std::string getEnv() {
+	const std::string BASE_ROOT(_getBaseRoot());
+	
+	DWORD dwAttr;
+	std::string appDir;
+
+	for (int i = 0; i < ENV_ARRAY->size(); i++) {
+		appDir = BASE_ROOT + ENV_ARRAY[i];
+		dwAttr = GetFileAttributes(appDir.c_str());
+
+		if (dwAttr != 0xffffffff && (dwAttr & FILE_ATTRIBUTE_DIRECTORY)) return ENV_ARRAY[i];
+	}
+
+	return ENV_PROD;
+}
+
+
+std::string _getBaseRootCMD() {
+	std::string BASE_DIR("C:\\Users\\\"");
+	BASE_DIR.append(getUsername());
+	BASE_DIR.append("\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-");
+	return BASE_DIR;
+}
+
+const std::string ENV(getEnv());
+const std::string BASE_DIR(_getBaseRootCMD() + ENV);
+const std::string CONTEXT_ACTIONS_DIR(BASE_DIR + std::string("\\resources\\context_actions\\"));
+
+
 int executeAction(std::string action, std::string args)
 {
 	STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
 
-	std::string base("cmd /K C:\\Users\\\"%username%\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-");
 	std::string result("");
 
-	for (int i = 2; i < ENV_ARRAY->size(); i++) {
-		result.append(base);
-		result.append(ENV_ARRAY[i]);
-		result.append(std::string("\\resources\\context_actions\\"));
-		result.append(action);
-		result.append(std::string(".bat "));
-		result.append(args);
+	result.append("cmd /K ");
+	result.append(CONTEXT_ACTIONS_DIR);
+	result.append(action);
+	result.append(".bat ");
+	result.append(args);
 
-		if (i != ENV_ARRAY->size() - 1) {
-			result.append(std::string(" || "));
-		}
-	}
-
-	std::wstring wide_string = std::wstring(result.begin(), result.end());
-	const wchar_t* _command = wide_string.c_str();
-	wchar_t* command = const_cast<wchar_t*>(_command);
+	wchar_t* command = stringToWChar(result);
 
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
