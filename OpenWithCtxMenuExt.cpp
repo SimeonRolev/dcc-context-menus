@@ -6,6 +6,7 @@
 #include "OpenWithExt.h"
 #include "OpenWithCtxMenuExt.h"
 #include <windows.h>
+#include <winuser.h>
 #include <stdio.h>
 #include "Shlwapi.h"
 #include <Lmcons.h>
@@ -115,16 +116,22 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
     if ( uFlags & CMF_DEFAULTONLY )
         return MAKE_HRESULT ( SEVERITY_SUCCESS, FACILITY_NULL, 0 );
 
+	
     // First, create and populate a submenu.
 HMENU hSubmenu = CreatePopupMenu();
 UINT uID = uidFirstCmd;
 
+	HBITMAP icoBitmap = (HBITMAP)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\BLK.BMP", IMAGE_BITMAP, 12, 12, LR_LOADFROMFILE);
+// HBITMAP LoadBitmapW(NULL, );
+	
 	std::string ext = getExtension(m_szSelectedFile);
 
 	
 	if (ext.compare(EXT_VWX) == 0) {
 		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("Generate &PDF"));
+		SetMenuItemBitmaps(hSubmenu, 0, MF_BYPOSITION, icoBitmap, icoBitmap);
 		InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("Generate 3D &model"));
+		SetMenuItemBitmaps(hSubmenu, 1, MF_BYPOSITION, icoBitmap, icoBitmap); // Add icon to Gen 3D
 	}
 
 	if (isPhotogramType(ext)) {
@@ -133,6 +140,9 @@ UINT uID = uidFirstCmd;
 	
     InsertMenu ( hSubmenu, 3, MF_BYPOSITION, uID++, _T("&Share") );
     InsertMenu ( hSubmenu, 4, MF_BYPOSITION, uID++, _T("Shareable &link") );
+
+	// SetMenuItemBitmaps(hmenu, 0, MF_BYPOSITION, icoBitmap, icoBitmap); // Sets to the lower menu item
+	// SetMenuItemBitmaps(hmenu, 2, MF_BYCOMMAND, icoBitmap, icoBitmap);
     
     // Insert the submenu into the ctx menu provided by Explorer.
 MENUITEMINFO mii = { sizeof(MENUITEMINFO) };
@@ -143,6 +153,7 @@ MENUITEMINFO mii = { sizeof(MENUITEMINFO) };
     mii.dwTypeData = _T("Vectorworks Cloud Services");
 
     InsertMenuItem ( hmenu, uMenuIndex, TRUE, &mii );
+	SetMenuItemBitmaps(hmenu, mii.wID, MF_BYCOMMAND, icoBitmap, icoBitmap);
 
     return MAKE_HRESULT ( SEVERITY_SUCCESS, FACILITY_NULL, uID - uidFirstCmd );
 }
