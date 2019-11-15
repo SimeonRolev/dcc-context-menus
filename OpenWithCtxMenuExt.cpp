@@ -10,11 +10,149 @@
 #include <stdio.h>
 #include "Shlwapi.h"
 #include <Lmcons.h>
-#include <string.h> 
+#include <string.h>
 
 #pragma comment(lib,"shlwapi")
 
 /////////////////////////////////////////////////////////////////////////////
+
+
+#define STRICT_TYPED_ITEMIDS    // In case you use IDList, you want this on for better type safety.
+#include <windows.h>
+#include <windowsx.h>           // For WM_COMMAND handling macros
+#include <shlobj.h>             // For shell
+#include <shlwapi.h>            // QISearch, easy way to implement QI
+#include <commctrl.h>
+#include <wincodec.h>           // WIC
+#include "resource.h"
+
+#pragma comment(lib, "shlwapi") // Default link libs do not include this.
+#pragma comment(lib, "comctl32")
+#pragma comment(lib, "WindowsCodecs")    // WIC
+
+// Set up common controls v6 the easy way.
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='x86' publicKeyToken='6595b64144ccf1df' language='*'\"")
+
+HINSTANCE g_hinst = 0;
+
+// AddIconToMenuItem and its supporting functions.
+// Note: BufferedPaintInit/BufferedPaintUnInit should be called to
+// improve performance.
+// In this sample they are called in _OnInitDlg/_OnDestroyDlg.
+// In a full application you would call these during WM_NCCREATE/WM_NCDESTROY.
+
+typedef DWORD ARGB;
+
+void InitBitmapInfo(__out_bcount(cbInfo) BITMAPINFO *pbmi, ULONG cbInfo, LONG cx, LONG cy, WORD bpp)
+{
+	ZeroMemory(pbmi, cbInfo);
+	pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	pbmi->bmiHeader.biPlanes = 1;
+	pbmi->bmiHeader.biCompression = BI_RGB;
+
+	pbmi->bmiHeader.biWidth = cx;
+	pbmi->bmiHeader.biHeight = cy;
+	pbmi->bmiHeader.biBitCount = bpp;
+}
+
+HRESULT Create32BitHBITMAP(HDC hdc, const SIZE *psize, __deref_opt_out void **ppvBits, __out HBITMAP* phBmp)
+{
+	*phBmp = NULL;
+
+	BITMAPINFO bmi;
+	InitBitmapInfo(&bmi, sizeof(bmi), psize->cx, psize->cy, 32);
+
+	HDC hdcUsed = hdc ? hdc : GetDC(NULL);
+	if (hdcUsed)
+	{
+		*phBmp = CreateDIBSection(hdcUsed, &bmi, DIB_RGB_COLORS, ppvBits, NULL, 0);
+		if (hdc != hdcUsed)
+		{
+			ReleaseDC(NULL, hdcUsed);
+		}
+	}
+	return (NULL == *phBmp) ? E_OUTOFMEMORY : S_OK;
+}
+
+HRESULT AddBitmapToMenuItem(HMENU hmenu, int iItem, BOOL fByPosition, HBITMAP hbmp)
+{
+	HRESULT hr = E_FAIL;
+
+	MENUITEMINFO mii = { sizeof(mii) };
+	mii.fMask = MIIM_BITMAP;
+	mii.hbmpItem = hbmp;
+	if (SetMenuItemInfo(hmenu, iItem, fByPosition, &mii))
+	{
+		hr = S_OK;
+	}
+
+	return hr;
+}
+
+HRESULT AddIconToMenuItem(__in IWICImagingFactory *pFactory,
+	HMENU hmenu, int iMenuItem, BOOL fByPosition, HICON hicon, BOOL fAutoDestroy, __out_opt HBITMAP *phbmp)
+{
+	HBITMAP hbmp = NULL;
+
+	IWICBitmap *pBitmap;
+	HRESULT hr = pFactory->CreateBitmapFromHICON(hicon, &pBitmap);
+	if (SUCCEEDED(hr))
+	{
+		IWICFormatConverter *pConverter;
+		hr = pFactory->CreateFormatConverter(&pConverter);
+		if (SUCCEEDED(hr))
+		{
+			hr = pConverter->Initialize(pBitmap, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom);
+			if (SUCCEEDED(hr))
+			{
+				UINT cx, cy;
+				hr = pConverter->GetSize(&cx, &cy);
+				if (SUCCEEDED(hr))
+				{
+					const SIZE sizIcon = { (int)cx, -(int)cy };
+					BYTE *pbBuffer;
+					hr = Create32BitHBITMAP(NULL, &sizIcon, reinterpret_cast<void **>(&pbBuffer), &hbmp);
+					if (SUCCEEDED(hr))
+					{
+						const UINT cbStride = cx * sizeof(ARGB);
+						const UINT cbBuffer = cy * cbStride;
+						hr = pConverter->CopyPixels(NULL, cbStride, cbBuffer, pbBuffer);
+					}
+				}
+			}
+
+			pConverter->Release();
+		}
+
+		pBitmap->Release();
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		hr = AddBitmapToMenuItem(hmenu, iMenuItem, fByPosition, hbmp);
+	}
+
+	if (FAILED(hr))
+	{
+		DeleteObject(hbmp);
+		hbmp = NULL;
+	}
+
+	if (fAutoDestroy)
+	{
+		DestroyIcon(hicon);
+	}
+
+	if (phbmp)
+	{
+		*phbmp = hbmp;
+	}
+
+	return hr;
+}
+
+
+////////////////////////////////////////////////////////////////////////////
 // COpenWithCtxMenuExt
 
 std::string getExtension(const char* charString) {
@@ -118,29 +256,85 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 
 	
     // First, create and populate a submenu.
+    // First, create and populate a submenu
 HMENU hSubmenu = CreatePopupMenu();
 UINT uID = uidFirstCmd;
 
-	HBITMAP icoBitmap = (HBITMAP)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\BLK.BMP", IMAGE_BITMAP, 12, 12, LR_LOADFROMFILE);
+	HBITMAP icoBitmap = (HBITMAP)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\BLK.BMP", IMAGE_BITMAP, 16, 16, LR_LOADFROMFILE);
+	HBITMAP pdfExportBitmap = (HBITMAP)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\mono.bmp", IMAGE_BITMAP, 16, 16, LR_LOADTRANSPARENT | LR_LOADFROMFILE);
+	HBITMAP dccBitmap = (HBITMAP)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\DCC-16x16-alpha.bmp", IMAGE_BITMAP, 16, 16, LR_LOADTRANSPARENT | LR_LOADFROMFILE);
+	// HICON hicon = (HICON)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\icon.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+	HICON hicon = (HICON)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\check_16x16.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
+
 // HBITMAP LoadBitmapW(NULL, );
+
+	//////////////////////////////////
+	HBITMAP hbmp = NULL;
+
+	IWICImagingFactory *pFactory;
+	HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory, NULL,
+		CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pFactory));
+	if (SUCCEEDED(hr))
+	{
+		IWICBitmap *pBitmap;
+		hr = pFactory->CreateBitmapFromHICON(hicon, &pBitmap);
+		if (SUCCEEDED(hr))
+		{
+			UINT cx, cy;
+			hr = pBitmap->GetSize(&cx, &cy);
+			if (SUCCEEDED(hr))
+			{
+				const SIZE sizIcon = { (int)cx, -(int)cy };
+				BYTE *pbBuffer;
+				hr = Create32BitHBITMAP(NULL, &sizIcon,
+					reinterpret_cast<void
+					**>(&pbBuffer), &hbmp);
+				if (SUCCEEDED(hr))
+				{
+					const UINT cbStride = cx * sizeof(ARGB);
+					const UINT cbBuffer = cy * cbStride;
+					hr = pBitmap->CopyPixels(NULL, cbStride,
+						cbBuffer, pbBuffer);
+				}
+			}
+			pBitmap->Release();
+		}
+		pFactory->Release();
+	}
+
+
+	//////////////////////////////
 	
 	std::string ext = getExtension(m_szSelectedFile);
-
 	
 	if (ext.compare(EXT_VWX) == 0) {
 		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("Generate &PDF"));
-		SetMenuItemBitmaps(hSubmenu, 0, MF_BYPOSITION, icoBitmap, icoBitmap);
 		InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("Generate 3D &model"));
-		SetMenuItemBitmaps(hSubmenu, 1, MF_BYPOSITION, icoBitmap, icoBitmap); // Add icon to Gen 3D
-	}
+		InsertMenu(hSubmenu, 2, MF_BYPOSITION, uID++, _T("&Share"));
+		InsertMenu(hSubmenu, 3, MF_BYPOSITION, uID++, _T("Shareable &link"));
 
-	if (isPhotogramType(ext)) {
-		InsertMenu(hSubmenu, 2, MF_BYPOSITION, uID++, _T("&Photos to 3D model"));
+		SetMenuItemBitmaps(hSubmenu, 0, MF_BYPOSITION, pdfExportBitmap, pdfExportBitmap);
+		SetMenuItemBitmaps(hSubmenu, 1, MF_BYPOSITION, dccBitmap, dccBitmap);
+		SetMenuItemBitmaps(hSubmenu, 2, MF_BYPOSITION, hbmp, hbmp);
+		SetMenuItemBitmaps(hSubmenu, 3, MF_BYPOSITION, icoBitmap, icoBitmap);
 	}
-	
-    InsertMenu ( hSubmenu, 3, MF_BYPOSITION, uID++, _T("&Share") );
-    InsertMenu ( hSubmenu, 4, MF_BYPOSITION, uID++, _T("Shareable &link") );
+	else if (isPhotogramType(ext)) {
+		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("&Photos to 3D model"));
+		InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("&Share"));
+		InsertMenu(hSubmenu, 2, MF_BYPOSITION, uID++, _T("Shareable &link"));
 
+		SetMenuItemBitmaps(hSubmenu, 0, MF_BYPOSITION, icoBitmap, icoBitmap);
+		SetMenuItemBitmaps(hSubmenu, 1, MF_BYPOSITION, icoBitmap, icoBitmap);
+		SetMenuItemBitmaps(hSubmenu, 2, MF_BYPOSITION, icoBitmap, icoBitmap);
+	}
+	else {
+		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("&Share"));
+		InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("Shareable &link"));
+
+		SetMenuItemBitmaps(hSubmenu, 0, MF_BYPOSITION, icoBitmap, icoBitmap);
+		SetMenuItemBitmaps(hSubmenu, 1, MF_BYPOSITION, icoBitmap, icoBitmap);
+	}
+    
 	// SetMenuItemBitmaps(hmenu, 0, MF_BYPOSITION, icoBitmap, icoBitmap); // Sets to the lower menu item
 	// SetMenuItemBitmaps(hmenu, 2, MF_BYCOMMAND, icoBitmap, icoBitmap);
     
