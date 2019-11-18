@@ -813,6 +813,7 @@ echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg" </Command>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BitmapParser.cpp" />
     <ClCompile Include="OpenWithCtxMenuExt.cpp" />
     <ClCompile Include="OpenWithExt.cpp" />
     <ClCompile Include="StdAfx.cpp">
@@ -841,6 +842,7 @@ echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg" </Command>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release MinDependency|Win32'">stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release MinDependency|x64'">stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="OpenWithCtxMenuExt.rgs" />
@@ -915,9 +917,12 @@ echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg" </Command>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BitmapParser.h" />
+    <ClInclude Include="OpenWithExt.h.h" />
     <ClInclude Include="OpenWithCtxMenuExt.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="StdAfx.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
