@@ -127,18 +127,21 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 	
 	if (ext.compare(EXT_VWX) == 0) {
 		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("Generate &PDF"));
-		InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("Generate 3D &model"));
-		InsertMenu(hSubmenu, 2, MF_BYPOSITION, uID++, _T("&Share"));
+		InsertMenu(hSubmenu, 1, MF_BYPOSITION , uID++, _T("Generate 3D &model"));
+		InsertMenu(hSubmenu, 2, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
 		InsertMenu(hSubmenu, 3, MF_BYPOSITION, uID++, _T("Shareable &link"));
+		// InsertMenu(hSubmenu, 3, MF_BYPOSITION, uID++, _T("&Share"));
+
 	}
 	else if (Utils::isPhotogramType(ext)) {
 		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("&Photos to 3D model"));
-		InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("&Share"));
+		InsertMenu(hSubmenu, 1, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
 		InsertMenu(hSubmenu, 2, MF_BYPOSITION, uID++, _T("Shareable &link"));
+		// InsertMenu(hSubmenu, 2, MF_BYPOSITION, uID++, _T("&Share"));
 	}
 	else {
-		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("&Share"));
-		InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("Shareable &link"));
+		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("Shareable &link"));
+		// InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("&Share"));
 		// SetMenuItemBitmaps(hSubmenu, 0, MF_BYPOSITION, icoBitmap, icoBitmap);
 		// Use BitmapParser::AddIconToMenuItem
 	}
@@ -163,7 +166,7 @@ HRESULT COpenWithCtxMenuExt::GetCommandString (UINT_PTR  idCmd,      UINT uFlags
 {
 USES_CONVERSION;
     // Check idCmd, it must be 0 or 4 since we have max five menu items.
-    if ( idCmd > 4 ) return E_INVALIDARG;
+    if ( idCmd > 3 ) return E_INVALIDARG;
 
     if ( uFlags & GCS_HELPTEXT ) {
         LPCTSTR pszText = "";
@@ -187,8 +190,8 @@ HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
 			case 0: { Utils::executeAction("PDF_EXPORT", filesArray); return S_OK; }
 			case 1: { Utils::executeAction("DISTILL", filesArray); return S_OK; }
-			case 2: { Utils::executeAction("SHARE", filesArray); return S_OK; }
-			case 3: { Utils::executeAction("LINK", filesArray); return S_OK; }
+			case 2: { Utils::executeAction("LINK", filesArray); return S_OK; }
+			// case 3: { Utils::executeAction("SHARE", filesArray); return S_OK; }
 			default: return E_INVALIDARG;
 		}
 	}
@@ -198,16 +201,16 @@ HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
 
 		switch (LOWORD(pCmdInfo->lpVerb)) {
 			case 0: { Utils::executeAction("PHOTOGRAM", filesArray); return S_OK; }
-			case 1: { Utils::executeAction("SHARE", filesArray); return S_OK; }
-			case 2: { Utils::executeAction("LINK", filesArray); return S_OK; }
+			case 1: { Utils::executeAction("LINK", filesArray); return S_OK; }
+			// case 2: { Utils::executeAction("SHARE", filesArray); return S_OK; }
 			default: return E_INVALIDARG;
 		}
 	} else {
 		if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
 
 		switch (LOWORD(pCmdInfo->lpVerb)) {
-			case 0: { Utils::executeAction("SHARE", filesArray); return S_OK; }
-			case 1: { Utils::executeAction("LINK", filesArray); return S_OK; }
+			case 0: { Utils::executeAction("LINK", filesArray); return S_OK; }
+			// case 1: { Utils::executeAction("SHARE", filesArray); return S_OK; }
 			default: return E_INVALIDARG;
 		}
 	}
