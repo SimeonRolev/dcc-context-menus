@@ -84,43 +84,6 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 
 	HMENU hSubmenu = CreatePopupMenu();
 	UINT uID = uidFirstCmd;
-	HBITMAP hbmp = NULL;
-
-	HICON hicon = (HICON)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\check_16x16.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-
-	// Create BMP from icon
-	IWICImagingFactory *pFactory;
-	HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pFactory));
-	
-	if (SUCCEEDED(hr))
-	{
-		IWICBitmap *pBitmap;
-		hr = pFactory->CreateBitmapFromHICON(hicon, &pBitmap);
-		if (SUCCEEDED(hr))
-		{
-			UINT cx, cy;
-			hr = pBitmap->GetSize(&cx, &cy);
-			if (SUCCEEDED(hr))
-			{
-				const SIZE sizIcon = { (int)cx, -(int)cy };
-				BYTE *pbBuffer;
-				hr = BitmapParser::Create32BitHBITMAP(NULL, &sizIcon,
-					reinterpret_cast<void
-					**>(&pbBuffer), &hbmp);
-				if (SUCCEEDED(hr))
-				{
-					const UINT cbStride = cx * sizeof(ARGB);
-					const UINT cbBuffer = cy * cbStride;
-					hr = pBitmap->CopyPixels(NULL, cbStride,
-						cbBuffer, pbBuffer);
-				}
-			}
-			pBitmap->Release();
-		}
-		pFactory->Release();
-	}
-
-	/////
 	
 	std::string ext = Utils::getActions(filesArray);
 	std::string EXT_VWX("vwx");
@@ -155,7 +118,13 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
     mii.dwTypeData = _T("Vectorworks Cloud Services");
 
     InsertMenuItem ( hmenu, uMenuIndex, TRUE, &mii );
-	SetMenuItemBitmaps(hmenu, mii.wID, MF_BYCOMMAND, hbmp, hbmp);
+	// SetMenuItemBitmaps(hmenu, mii.wID, MF_BYCOMMAND, hbmp, hbmp);
+
+	HBITMAP* hbmp = NULL;
+	HICON hicon = (HICON)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\icon.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
+	
+	IWICImagingFactory *pFactory = NULL;
+	BitmapParser::AddIconToMenuItem(hmenu, mii.wID, false, hicon, true, hbmp);
 
     return MAKE_HRESULT ( SEVERITY_SUCCESS, FACILITY_NULL, uID - uidFirstCmd );
 }

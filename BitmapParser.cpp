@@ -76,10 +76,16 @@ HRESULT BitmapParser::AddBitmapToMenuItem(HMENU hmenu, int iItem, BOOL fByPositi
 	return hr;
 }
 
-HRESULT BitmapParser::AddIconToMenuItem(__in IWICImagingFactory *pFactory,
+HRESULT BitmapParser::AddIconToMenuItem(
 	HMENU hmenu, int iMenuItem, BOOL fByPosition, HICON hicon, BOOL fAutoDestroy, __out_opt HBITMAP *phbmp)
 {
+	IWICImagingFactory *pFactory = NULL;
 	HBITMAP hbmp = NULL;
+	HRESULT hrc = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pFactory));
+
+	if (FAILED(hrc)) {
+		return hrc;
+	}
 
 	IWICBitmap *pBitmap;
 	HRESULT hr = pFactory->CreateBitmapFromHICON(hicon, &pBitmap);
