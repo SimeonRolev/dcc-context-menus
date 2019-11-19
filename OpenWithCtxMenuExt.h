@@ -4,6 +4,7 @@
 #define __OPENWITHCTXMENUEXT_H_
 
 #include "resource.h"       // main symbols
+#include <vector>
 
 /////////////////////////////////////////////////////////////////////////////
 // COpenWithCtxMenuExt
@@ -39,6 +40,7 @@ public:
 
 protected:
     TCHAR m_szSelectedFile[MAX_PATH+2];
+	std::vector<std::string> filesArray;
 };
 
 #endif //__OPENWITHCTXMENUEXT_H_

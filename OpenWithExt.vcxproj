@@ -814,6 +814,7 @@ echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg" </Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BitmapParser.cpp" />
+    <ClCompile Include="Constants.cpp" />
     <ClCompile Include="OpenWithCtxMenuExt.cpp" />
     <ClCompile Include="OpenWithExt.cpp" />
     <ClCompile Include="StdAfx.cpp">
@@ -918,6 +919,7 @@ echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg" </Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitmapParser.h" />
+    <ClInclude Include="Constants.h" />
     <ClInclude Include="OpenWithExt.h.h" />
     <ClInclude Include="OpenWithCtxMenuExt.h" />
     <ClInclude Include="Resource.h" />

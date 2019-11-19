@@ -8,6 +8,7 @@
 #include "BitmapParser.h"
 #include "Utils.h"
 #include <windows.h>
+#include <array>
 #include <winuser.h>
 #include <stdio.h>
 #include "Shlwapi.h"
@@ -43,7 +44,7 @@ HDROP     hDrop;
     // Sanity check - make sure there is at least one filename.
 UINT uNumFiles = DragQueryFile ( hDrop, 0xFFFFFFFF, NULL, 0 );
 
-    if ( 0 == uNumFiles )
+    if ( 0 == uNumFiles || 501 < uNumFiles)
         {
         GlobalUnlock ( stg.hGlobal );
         ReleaseStgMedium ( &stg );
@@ -52,14 +53,15 @@ UINT uNumFiles = DragQueryFile ( hDrop, 0xFFFFFFFF, NULL, 0 );
 
 	HRESULT hr = S_OK;
 
-    // Get the name of the first file and store it in our member variable m_szFile.
-    if ( 0 == DragQueryFile ( hDrop, 0, m_szSelectedFile, MAX_PATH ))
-        hr = E_INVALIDARG;
-    else
-        {
-        // Quote the name if it contains spaces (needed so the cmd line is built properly)
-        PathQuoteSpaces ( m_szSelectedFile );
-        }
+	for (size_t i = 0; i < uNumFiles; i++) {
+		TCHAR *m_szSelectedFile = new TCHAR[MAX_PATH + 2];
+
+		if (0 == DragQueryFile(hDrop, i, m_szSelectedFile, MAX_PATH)) { hr = E_INVALIDARG; break; }
+		else PathQuoteSpaces(m_szSelectedFile);
+
+		filesArray.push_back(std::string(m_szSelectedFile));
+		delete[] m_szSelectedFile;
+	}
 
 	//	if (lstrcmpi(m_szSelectedFile, "D:\\RandomCodes") != 0)
 		//{
@@ -71,9 +73,6 @@ UINT uNumFiles = DragQueryFile ( hDrop, 0xFFFFFFFF, NULL, 0 );
 
     return hr;
 }
-
-// VWX extensions
-std::string EXT_VWX("vwx");
 
 
 HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex, 
@@ -123,14 +122,14 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 
 	/////
 	
-	std::string ext = Utils::getExtension(m_szSelectedFile);
+	std::string ext = Utils::getActions(filesArray);
+	std::string EXT_VWX("vwx");
 	
 	if (ext.compare(EXT_VWX) == 0) {
 		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("Generate &PDF"));
 		InsertMenu(hSubmenu, 1, MF_BYPOSITION, uID++, _T("Generate 3D &model"));
 		InsertMenu(hSubmenu, 2, MF_BYPOSITION, uID++, _T("&Share"));
 		InsertMenu(hSubmenu, 3, MF_BYPOSITION, uID++, _T("Shareable &link"));
-
 	}
 	else if (Utils::isPhotogramType(ext)) {
 		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("&Photos to 3D model"));
@@ -180,17 +179,16 @@ USES_CONVERSION;
 
 
 HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
-	std::string args(m_szSelectedFile);
-	std::string ext = Utils::getExtension(m_szSelectedFile);
-
+	std::string ext = Utils::getActions(filesArray);
+	std::string EXT_VWX("vwx");
 	if (ext.compare(EXT_VWX) == 0) {
 		if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
 
 		switch (LOWORD(pCmdInfo->lpVerb)) {
-			case 0: { Utils::executeAction("pdf_export", args); return S_OK; }
-			case 1: { Utils::executeAction("distill", args); return S_OK; }
-			case 2: { Utils::executeAction("share", args); return S_OK; }
-			case 3: { Utils::executeAction("link", args); return S_OK; }
+			case 0: { Utils::executeAction("PDF_EXPORT", filesArray); return S_OK; }
+			case 1: { Utils::executeAction("DISTILL", filesArray); return S_OK; }
+			case 2: { Utils::executeAction("SHARE", filesArray); return S_OK; }
+			case 3: { Utils::executeAction("LINK", filesArray); return S_OK; }
 			default: return E_INVALIDARG;
 		}
 	}
@@ -199,17 +197,17 @@ HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
 		if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
 
 		switch (LOWORD(pCmdInfo->lpVerb)) {
-			case 0: { Utils::executeAction("photogram", args); return S_OK; }
-			case 1: { Utils::executeAction("share", args); return S_OK; }
-			case 2: { Utils::executeAction("link", args); return S_OK; }
+			case 0: { Utils::executeAction("PHOTOGRAM", filesArray); return S_OK; }
+			case 1: { Utils::executeAction("SHARE", filesArray); return S_OK; }
+			case 2: { Utils::executeAction("LINK", filesArray); return S_OK; }
 			default: return E_INVALIDARG;
 		}
 	} else {
 		if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
 
 		switch (LOWORD(pCmdInfo->lpVerb)) {
-			case 0: { Utils::executeAction("share", args); return S_OK; }
-			case 1: { Utils::executeAction("link", args); return S_OK; }
+			case 0: { Utils::executeAction("SHARE", filesArray); return S_OK; }
+			case 1: { Utils::executeAction("LINK", filesArray); return S_OK; }
 			default: return E_INVALIDARG;
 		}
 	}
