@@ -91,6 +91,11 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 	if (ext.compare(EXT_VWX) == 0) {
 		InsertMenu(hSubmenu, 0, MF_BYPOSITION, uID++, _T("Generate &PDF"));
 		InsertMenu(hSubmenu, 1, MF_BYPOSITION , uID++, _T("Generate 3D &model"));
+
+		HBITMAP* hbmp1 = NULL;
+		HICON hicon1 = (HICON)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\icon.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
+		BitmapParser::AddIconToMenuItem(hSubmenu, 1, true, hicon1, true, hbmp1);
+
 		InsertMenu(hSubmenu, 2, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
 		InsertMenu(hSubmenu, 3, MF_BYPOSITION, uID++, _T("Shareable &link"));
 		// InsertMenu(hSubmenu, 3, MF_BYPOSITION, uID++, _T("&Share"));
@@ -118,13 +123,9 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
     mii.dwTypeData = _T("Vectorworks Cloud Services");
 
     InsertMenuItem ( hmenu, uMenuIndex, TRUE, &mii );
-	// SetMenuItemBitmaps(hmenu, mii.wID, MF_BYCOMMAND, hbmp, hbmp);
 
-	HBITMAP* hbmp = NULL;
 	HICON hicon = (HICON)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\icon.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-	
-	IWICImagingFactory *pFactory = NULL;
-	BitmapParser::AddIconToMenuItem(hmenu, mii.wID, false, hicon, true, hbmp);
+	BitmapParser::AddIconToMenuItem(hmenu, mii.wID, false, hicon, true, NULL);
 
     return MAKE_HRESULT ( SEVERITY_SUCCESS, FACILITY_NULL, uID - uidFirstCmd );
 }

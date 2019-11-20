@@ -117,7 +117,7 @@ int Utils::executeAction(std::string action, std::vector<std::string> args)
 	STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
 
-	std::string result("cmd /K " + BACKGROUND_SERVICE + " --config=" + ENV_CONFIG_ARRAY[ENV] + " ");
+	std::string result("cmd /c " + BACKGROUND_SERVICE + " --config=" + ENV_CONFIG_ARRAY[ENV] + " ");
 	for (int i = 0; i < args.size(); i++) {
 		result.append(args[i]);
 		result.append(" ");
@@ -132,7 +132,7 @@ int Utils::executeAction(std::string action, std::vector<std::string> args)
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
 
-	if (!CreateProcessW(NULL, command, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+	if (!CreateProcessW(NULL, command, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
 		printf("CreateProcess failed (%d)\n", GetLastError());
 		return FALSE;
