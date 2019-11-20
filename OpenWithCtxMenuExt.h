@@ -40,7 +40,7 @@ public:
 
 protected:
     TCHAR m_szSelectedFile[MAX_PATH+2];
-	std::vector<std::string> filesArray;
+	std::vector<std::wstring> filesArray;
 };
 
 #endif //__OPENWITHCTXMENUEXT_H_

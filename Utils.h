@@ -10,13 +10,11 @@ class Utils
 public:
 	Utils();
 	~Utils();
-	static std::string getExtension(std::string charString);
-	static bool isPhotogramType(std::string ext);
-	static wchar_t* stringToWChar(std::string s);
-	static std::string getUsername();
-	static std::string _getBaseRoot();
+	static std::wstring getExtension(std::wstring charString);
+	static bool isPhotogramType(std::wstring ext);
+	static wchar_t* stringToWChar(std::wstring s);
+	static std::wstring getDCCRoot();
 	static int getEnv();
-	static std::string _getBaseRootCMD();
-	static int executeAction(std::string action, std::vector<std::string> args);
-	static std::string Utils::getActions(std::vector <std::string> filesArray);
+	static int executeAction(std::wstring action, std::vector<std::wstring> args);
+	static std::wstring Utils::getActions(std::vector <std::wstring> filesArray);
 };
