@@ -10,6 +10,9 @@ class Utils
 public:
 	Utils();
 	~Utils();
+
+	static bool serviceIsRunning(std::wstring sAppName);
+
 	static std::wstring getExtension(std::wstring charString);
 	static bool isVWXType(std::wstring ext);
 	static bool isPhotogramType(std::wstring ext);

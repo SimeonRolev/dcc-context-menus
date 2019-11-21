@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <vector>
 
+#include <windows.h>
+#include <tlhelp32.h>
+
 
 Utils::Utils()
 {
@@ -169,4 +172,24 @@ std::wstring Utils::getActions(std::wstring &SELECTION_TYPE, const std::vector <
 		SELECTION_TYPE = EXT_JPEG;
 		return EXT_JPEG;
 	} else return L"NONE";
+}
+
+
+// bool IsProcessRunning() 
+bool Utils::serviceIsRunning(std::wstring sAppName) {
+	PROCESSENTRY32W entry;
+	entry.dwSize = sizeof(PROCESSENTRY32W);
+
+	const auto snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+	bool a = Process32FirstW(snapshot, &entry);
+
+	do {
+		if (!_wcsicmp(entry.szExeFile, sAppName.c_str())) {
+			CloseHandle(snapshot);
+			return true;
+		}
+	} while (Process32NextW(snapshot, &entry));
+
+	CloseHandle(snapshot);
+	return false;
 }

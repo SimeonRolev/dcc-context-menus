@@ -33,6 +33,8 @@ HDROP     hDrop;
     hDrop = (HDROP) GlobalLock ( stg.hGlobal );
     if ( NULL == hDrop ) return E_INVALIDARG;
 
+	if (!Utils::serviceIsRunning(L"Vectorworks Cloud Services Background Service.exe")) return E_INVALIDARG;
+
 	// Get installation directories
 	if (FAILED(this->setDirs())) return E_INVALIDARG;
 
