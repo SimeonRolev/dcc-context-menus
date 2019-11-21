@@ -66,7 +66,7 @@ public:
 
 		RESOURCES_DIR = BASE_DIR + L"resources\\";
 		SERVER_DIR = RESOURCES_DIR + L"server\\";
-		ICONS_DIR = RESOURCES_DIR + L"context_actions\\";
+		ICONS_DIR = RESOURCES_DIR + L"context_actions\\icons\\";
 
 		BG_SRV_CMD = Utils::wrapSpacesForCMD(SERVER_DIR, L"\\") + L"\"Vectorworks Cloud Services Background Service\".exe";
 
