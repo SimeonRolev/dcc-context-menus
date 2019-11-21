@@ -15,13 +15,8 @@ Utils::~Utils()
 {
 }
 
-std::wstring Utils::getExtension(std::wstring str) {
-	std::size_t startIndex = str.find_last_of(L".");
-	std::wstring sl = str.substr(startIndex + 1, str.size() - startIndex - 2);
-	std::transform(sl.begin(), sl.end(), sl.begin(), ::tolower);
-	return sl;
-}
 
+std::wstring EXT_VWX(L"vwx");
 
 // PHOTOGRAM extensions
 std::wstring EXT_TIFF(L"tiff");
@@ -34,6 +29,32 @@ std::wstring EXT_ICO(L"ico");
 std::wstring EXT_GIF(L"gif");
 std::wstring EXT_BMP(L"bmp");
 
+const std::wstring ENV_PROD(L"prod");
+const std::wstring ENV_BETA(L"beta");
+const std::wstring ENV_QA(L"qa");
+const std::wstring ENV_DEVEL(L"devel");
+const std::wstring ENV_ARRAY[] = { ENV_PROD, ENV_BETA, ENV_QA, ENV_DEVEL };
+
+const std::wstring PROD_CONFIG(L"dcc.main.prod_settings");
+const std::wstring BETA_CONFIG(L"dcc.main.beta_settings");
+const std::wstring TEST_CONFIG(L"dcc.main.test_settings");
+const std::wstring DEV_CONFIG(L"dcc.main.dev_settings");
+const std::wstring ENV_CONFIG_ARRAY[] = { PROD_CONFIG, BETA_CONFIG, TEST_CONFIG, DEV_CONFIG };
+
+
+std::wstring Utils::getExtension(std::wstring str) {
+	std::size_t startIndex = str.find_last_of(L".");
+	std::wstring sl = str.substr(startIndex + 1, str.size() - startIndex - 2);
+	std::transform(sl.begin(), sl.end(), sl.begin(), ::tolower);
+	return sl;
+}
+
+
+
+bool Utils::isVWXType(std::wstring ext) {
+	if (ext.compare(EXT_VWX) == 0) return true;
+	return false;
+}
 
 bool Utils::isPhotogramType(std::wstring ext) {
 	if (
@@ -50,53 +71,37 @@ bool Utils::isPhotogramType(std::wstring ext) {
 	return false;
 }
 
-const std::wstring ENV_PROD(L"prod");
-const std::wstring ENV_BETA(L"beta");
-const std::wstring ENV_QA(L"qa");
-const std::wstring ENV_DEVEL(L"devel");
-const std::wstring ENV_ARRAY[] = { ENV_PROD, ENV_BETA, ENV_QA, ENV_DEVEL };
-
-const std::wstring PROD_CONFIG(L"dcc.main.prod_settings");
-const std::wstring BETA_CONFIG(L"dcc.main.beta_settings");
-const std::wstring TEST_CONFIG(L"dcc.main.test_settings");
-const std::wstring DEV_CONFIG(L"dcc.main.dev_settings");
-const std::wstring ENV_CONFIG_ARRAY[] = { PROD_CONFIG, BETA_CONFIG, TEST_CONFIG, DEV_CONFIG };
-
-
-wchar_t* Utils::stringToWChar(std::wstring s) {
-	std::wstring wide_string = std::wstring(s.begin(), s.end());
-	const wchar_t* _res = wide_string.c_str();
-	return const_cast<wchar_t*>(_res);
+HRESULT Utils::getDCCRoot(std::wstring &out) {
+	PWSTR localAppDataPrograms = NULL;
+	HRESULT hr = SHGetKnownFolderPath(FOLDERID_UserProgramFiles, 0, NULL, &localAppDataPrograms);
+	
+	if (SUCCEEDED(hr)) {
+		std::wstring resdir = std::wstring(localAppDataPrograms) + L"\\vectorworks-cloud-services-";
+		out = resdir;
+	}
+	CoTaskMemFree(localAppDataPrograms);
+	return hr;
 }
 
-std::wstring Utils::getDCCRoot() {
-	wchar_t* localAppDataPrograms = 0;
-	SHGetKnownFolderPath(FOLDERID_UserProgramFiles, 0, NULL, &localAppDataPrograms);
-	CoTaskMemFree(static_cast<void*>(localAppDataPrograms));
-
-	return std::wstring(localAppDataPrograms) + L"\\vectorworks-cloud-services-";
-}
-
-const std::wstring BASE_ROOT(Utils::getDCCRoot());
-
-int Utils::getEnv() {
+HRESULT Utils::getEnv(std::wstring &BASE_DIR, int &out) {
 	DWORD dwAttr;
 	std::wstring appDir;
 
 	for (int i = 0; i < ENV_ARRAY->size(); i++) {
-		appDir = BASE_ROOT + ENV_ARRAY[i];
+		appDir = BASE_DIR + ENV_ARRAY[i];
 		dwAttr = GetFileAttributesW(appDir.c_str());
 
-		if (dwAttr != 0xffffffff && (dwAttr & FILE_ATTRIBUTE_DIRECTORY)) return i;
+		if (dwAttr != 0xffffffff && (dwAttr & FILE_ATTRIBUTE_DIRECTORY)) {
+			out = i;
+			BASE_DIR = appDir + L"\\";
+			return S_OK;
+		};
 	}
 
-	return 3;
+	return E_INVALIDARG;
 }
 
-const int ENV(Utils::getEnv());
-const std::wstring BG_SRV(BASE_ROOT + ENV_ARRAY[ENV] + L"\\resources\\server\\");
-
-std::wstring wrapSpaces(const std::wstring &text, wchar_t* sep) {
+std::wstring Utils::wrapSpacesForCMD(const std::wstring &text, wchar_t* sep) {
 	std::vector<std::wstring> tokens;
 	std::size_t start = 0, end = 0;
 	while ((end = text.find(sep, start)) != std::wstring::npos) {
@@ -117,16 +122,14 @@ std::wstring wrapSpaces(const std::wstring &text, wchar_t* sep) {
 		}
 	}
 
-	return res + L"\"Vectorworks Cloud Services Background Service\".exe";
+	return res;
 }
 
 
-int Utils::executeAction(std::wstring action, std::vector<std::wstring> args)
+HRESULT Utils::executeAction(std::wstring BG_SRV_CMD, int ENV, std::wstring action, std::vector<std::wstring> args)
 {
 	STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
-
-	std::wstring BG_SRV_CMD = wrapSpaces(BG_SRV, L"\\");
 	
 	std::wstring result(L"cmd /C " + BG_SRV_CMD + L" --config=" + ENV_CONFIG_ARRAY[ENV] + L" ");
 	for (int i = 0; i < args.size(); i++) {
@@ -145,27 +148,26 @@ int Utils::executeAction(std::wstring action, std::vector<std::wstring> args)
 	if (!CreateProcessW(NULL, command, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
 		printf("CreateProcess failed (%d)\n", GetLastError());
-		return FALSE;
+		return E_INVALIDARG;
 	}
 	WaitForSingleObject(pi.hProcess, INFINITE);
 	CloseHandle(pi.hProcess);
 	CloseHandle(pi.hThread);
-	return 0;
+	return S_OK;
 }
 
-
-std::wstring EXT_VWX(L"vwx");
-
-std::wstring Utils::getActions(std::vector <std::wstring> filesArray){
+std::wstring Utils::getActions(std::wstring &SELECTION_TYPE, std::vector <std::wstring> filesArray){
 	if (std::all_of(filesArray.begin(), filesArray.end(), [](std::wstring path) {
 		std::wstring ext = Utils::getExtension(path);
 		return ext.compare(EXT_VWX) == 0;
 	})) {
+		SELECTION_TYPE = EXT_VWX;
 		return EXT_VWX;
 	} else if (std::all_of(filesArray.begin(), filesArray.end(), [](std::wstring path) {
 		std::wstring ext = Utils::getExtension(path);
 		return Utils::isPhotogramType(ext);
 	})) {
+		SELECTION_TYPE = EXT_JPEG;
 		return EXT_JPEG;
 	} else return L"NONE";
 }

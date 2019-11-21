@@ -4,6 +4,8 @@
 #define __OPENWITHCTXMENUEXT_H_
 
 #include "resource.h"       // main symbols
+#include "Utils.h"
+#include <string>
 #include <vector>
 
 /////////////////////////////////////////////////////////////////////////////
@@ -41,6 +43,35 @@ public:
 protected:
     TCHAR m_szSelectedFile[MAX_PATH+2];
 	std::vector<std::wstring> filesArray;
+
+private:
+	int ENV;
+	std::wstring BASE_DIR;
+
+	std::wstring RESOURCES_DIR;
+	std::wstring SERVER_DIR;
+	std::wstring ICONS_DIR;
+	std::wstring BG_SRV_CMD;
+
+	std::wstring SELECTION_TYPE;
+
+public:
+	HRESULT setDirs() {
+		HRESULT hr_base = Utils::getDCCRoot(BASE_DIR);
+		HRESULT hr_env = Utils::getEnv(BASE_DIR, ENV);
+
+		if (FAILED(hr_base) || FAILED(hr_env)) {
+			return E_INVALIDARG;
+		}
+
+		RESOURCES_DIR = BASE_DIR + L"resources\\";
+		SERVER_DIR = RESOURCES_DIR + L"server\\";
+		ICONS_DIR = RESOURCES_DIR + L"context_actions\\";
+
+		BG_SRV_CMD = Utils::wrapSpacesForCMD(SERVER_DIR, L"\\") + L"\"Vectorworks Cloud Services Background Service\".exe";
+
+		return S_OK;
+	};
 };
 
 #endif //__OPENWITHCTXMENUEXT_H_

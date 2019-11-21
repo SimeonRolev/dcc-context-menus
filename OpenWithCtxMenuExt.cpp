@@ -26,18 +26,17 @@ HRESULT COpenWithCtxMenuExt::Initialize ( LPCITEMIDLIST pidlFolder,
 FORMATETC fmt = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 STGMEDIUM stg = { TYMED_HGLOBAL };
 HDROP     hDrop;
-
-    // Look for CF_HDROP data in the data object.
-    if ( FAILED( pDataObj->GetData ( &fmt, &stg ))) {
-        return E_INVALIDARG;
-    }
+	
+    if ( FAILED( pDataObj->GetData ( &fmt, &stg ))) return E_INVALIDARG; // Look for CF_HDROP data in the data object.
 
     // Get a pointer to the actual data.
     hDrop = (HDROP) GlobalLock ( stg.hGlobal );
+    if ( NULL == hDrop ) return E_INVALIDARG;
 
-    if ( NULL == hDrop )
-        return E_INVALIDARG;
+	// Get installation directories
+	if (FAILED(this->setDirs())) return E_INVALIDARG;
 
+	// Check number of files selected
 	UINT uNumFiles = DragQueryFile ( hDrop, 0xFFFFFFFF, NULL, 0 );
 
     if ( 0 == uNumFiles || 501 < uNumFiles) {
@@ -48,6 +47,7 @@ HDROP     hDrop;
 
 	HRESULT hr = S_OK;
 
+	// Add files array that holds the multiple selection
 	for (size_t i = 0; i < uNumFiles; i++) {
 		wchar_t *m_szSelectedFile = new wchar_t[MAX_PATH + 2];
 
@@ -58,11 +58,16 @@ HDROP     hDrop;
 		delete[] m_szSelectedFile;
 	}
 
+	if (SUCCEEDED(hr)) {
+		Utils::getActions(SELECTION_TYPE, filesArray);
+	}
+
+	// TODO: A place to eventually check if the files are from a certain folder
 	//	if (lstrcmpi(m_szSelectedFile, L"D:\\CheckDCCFolder") != 0) hr = E_INVALIDARG;
 
     GlobalUnlock ( stg.hGlobal );
     ReleaseStgMedium ( &stg );
-
+	
     return hr;
 }
 
@@ -74,33 +79,38 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
     // If the flags include CMF_DEFAULTONLY then we shouldn't do anything.
     if ( uFlags & CMF_DEFAULTONLY ) return MAKE_HRESULT ( SEVERITY_SUCCESS, FACILITY_NULL, 0 );
 
+	// Load icons
+	HICON ICON_MAIN       = (HICON)LoadImageW(NULL, (ICONS_DIR + L"icon.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
+	HICON ICON_PDF_EXPORT = (HICON)LoadImageW(NULL, (ICONS_DIR + L"pdf_export.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
+	HICON ICON_DISTILL    = (HICON)LoadImageW(NULL, (ICONS_DIR + L"distill.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
+	HICON ICON_PHOTOGRAM  = (HICON)LoadImageW(NULL, (ICONS_DIR + L"photogram.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
+	HICON ICON_LINK       = (HICON)LoadImageW(NULL, (ICONS_DIR + L"link.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
+	
 	HMENU hSubmenu = CreatePopupMenu();
 	UINT uID = uidFirstCmd;
-	
-	std::wstring ext = Utils::getActions(filesArray);
-	std::wstring EXT_VWX(L"vwx");
-	
-	if (ext.compare(EXT_VWX) == 0) {
+
+	if (Utils::isVWXType(SELECTION_TYPE)) {
 		InsertMenuW(hSubmenu, 0, MF_BYPOSITION, uID++, _T(L"Generate &PDF"));
-		InsertMenuW(hSubmenu, 1, MF_BYPOSITION , uID++, _T(L"Generate 3D &model"));
-
-		HICON hicon1 = (HICON)LoadImageW(NULL, L"C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\icon.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-		BitmapParser::AddIconToMenuItem(hSubmenu, 1, true, hicon1, true, NULL);
-
+		InsertMenuW(hSubmenu, 1, MF_BYPOSITION, uID++, _T(L"Generate 3D &model"));
 		InsertMenuW(hSubmenu, 2, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
 		InsertMenuW(hSubmenu, 3, MF_BYPOSITION, uID++, _T(L"Shareable &link"));
-		// InsertMenu(hSubmenu, 4, MF_BYPOSITION, uID++, _T("&Share"));
 
+		BitmapParser::AddIconToMenuItem(hSubmenu, 0, true, ICON_PDF_EXPORT, true, NULL);
+		BitmapParser::AddIconToMenuItem(hSubmenu, 1, true, ICON_DISTILL, true, NULL);
+		BitmapParser::AddIconToMenuItem(hSubmenu, 3, true, ICON_LINK, true, NULL);
 	}
-	else if (Utils::isPhotogramType(ext)) {
+	else if (Utils::isPhotogramType(SELECTION_TYPE)) {
 		InsertMenuW(hSubmenu, 0, MF_BYPOSITION, uID++, _T(L"&Photos to 3D model"));
 		InsertMenuW(hSubmenu, 1, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
 		InsertMenuW(hSubmenu, 2, MF_BYPOSITION, uID++, _T(L"Shareable &link"));
+
+		BitmapParser::AddIconToMenuItem(hSubmenu, 0, true, ICON_PHOTOGRAM, true, NULL);
+		BitmapParser::AddIconToMenuItem(hSubmenu, 2, true, ICON_LINK, true, NULL);
 	}
 	else {
 		InsertMenuW(hSubmenu, 0, MF_BYPOSITION, uID++, _T(L"Shareable &link"));
+		BitmapParser::AddIconToMenuItem(hSubmenu, 0, true, ICON_LINK, true, NULL);
 	}
-    
     
     // Insert the submenu into the ctx menu provided by Explorer.
 	MENUITEMINFO mii = { sizeof(MENUITEMINFO) };
@@ -110,9 +120,7 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
     mii.dwTypeData = _T("Vectorworks Cloud Services");
 
     InsertMenuItem ( hmenu, uMenuIndex, TRUE, &mii );
-
-	HICON hicon = (HICON)LoadImage(NULL, "C:\\Users\\Simeon Rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-devel\\resources\\context_actions\\icon.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-	BitmapParser::AddIconToMenuItem(hmenu, mii.wID, false, hicon, true, NULL);
+	BitmapParser::AddIconToMenuItem(hmenu, mii.wID, false, ICON_MAIN, true, NULL);
 
     return MAKE_HRESULT ( SEVERITY_SUCCESS, FACILITY_NULL, uID - uidFirstCmd );
 }
@@ -139,36 +147,27 @@ USES_CONVERSION;
 
 
 HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
-	std::wstring ext = Utils::getActions(filesArray);
-	std::wstring EXT_VWX(L"vwx");
-	if (ext.compare(EXT_VWX) == 0) {
-		if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
-
+	if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
+	
+	if (Utils::isVWXType(SELECTION_TYPE)) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
-			case 0: { Utils::executeAction(L"PDF_EXPORT", filesArray); return S_OK; }
-			case 1: { Utils::executeAction(L"DISTILL", filesArray); return S_OK; }
-			case 2: { Utils::executeAction(L"LINK", filesArray); return S_OK; }
+			case 0: { return Utils::executeAction(BG_SRV_CMD, ENV, L"PDF_EXPORT", filesArray); }
+			case 1: { return Utils::executeAction(BG_SRV_CMD, ENV, L"DISTILL", filesArray); }
+			case 2: { return Utils::executeAction(BG_SRV_CMD, ENV, L"LINK", filesArray); }
 			// case 3: { Utils::executeAction("SHARE", filesArray); return S_OK; }
 			default: return E_INVALIDARG;
 		}
 	}
-
-	else if (Utils::isPhotogramType(ext)) {
-		if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
-
+	else if (Utils::isPhotogramType(SELECTION_TYPE)) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
-			case 0: { Utils::executeAction(L"PHOTOGRAM", filesArray); return S_OK; }
-			case 1: { Utils::executeAction(L"LINK", filesArray); return S_OK; }
+			case 0: { return Utils::executeAction(BG_SRV_CMD, ENV, L"PHOTOGRAM", filesArray); }
+			case 1: { return Utils::executeAction(BG_SRV_CMD, ENV, L"LINK", filesArray); }
 			default: return E_INVALIDARG;
 		}
 	} else {
-		if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
-
 		switch (LOWORD(pCmdInfo->lpVerb)) {
-			case 0: { Utils::executeAction(L"LINK", filesArray); return S_OK; }
+			case 0: { return Utils::executeAction(BG_SRV_CMD, ENV, L"LINK", filesArray); }
 			default: return E_INVALIDARG;
 		}
 	}
-
-	return E_INVALIDARG;
 }
