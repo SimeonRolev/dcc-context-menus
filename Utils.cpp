@@ -126,8 +126,7 @@ std::wstring Utils::wrapSpacesForCMD(const std::wstring &text, wchar_t* sep) {
 }
 
 
-HRESULT Utils::executeAction(std::wstring BG_SRV_CMD, int ENV, std::wstring action, std::vector<std::wstring> args)
-{
+HRESULT Utils::executeAction(std::wstring BG_SRV_CMD, int ENV, std::wstring action, const std::vector<std::wstring> &args) {
 	STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
 	
@@ -156,7 +155,7 @@ HRESULT Utils::executeAction(std::wstring BG_SRV_CMD, int ENV, std::wstring acti
 	return S_OK;
 }
 
-std::wstring Utils::getActions(std::wstring &SELECTION_TYPE, std::vector <std::wstring> filesArray){
+std::wstring Utils::getActions(std::wstring &SELECTION_TYPE, const std::vector <std::wstring> &filesArray) {
 	if (std::all_of(filesArray.begin(), filesArray.end(), [](std::wstring path) {
 		std::wstring ext = Utils::getExtension(path);
 		return ext.compare(EXT_VWX) == 0;

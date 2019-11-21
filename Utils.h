@@ -23,8 +23,8 @@ public:
 	static std::wstring wrapSpacesForCMD(const std::wstring &text, wchar_t* sep);
 	
 	// getActions is used twice, so we allow it to modify the SELECTION_TYPE and reuse that
-	static std::wstring Utils::getActions(std::wstring &SELECTION_TYPE, std::vector <std::wstring> filesArray);
+	static std::wstring getActions(std::wstring &SELECTION_TYPE, const std::vector <std::wstring> &filesArray);
 	
 	// exectuteAction should not modify anything, so all params are passed by value
-	static HRESULT executeAction(std::wstring BG_SRV_CMD, int ENV, std::wstring action, std::vector<std::wstring> args);
+	static HRESULT executeAction(std::wstring BG_SRV_CMD, int ENV, std::wstring action, const std::vector<std::wstring> &args);
 };
