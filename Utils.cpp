@@ -1,12 +1,21 @@
-#include "stdafx.h"
-#include "Utils.h"
 #include <Lmcons.h>
 
+#include "stdafx.h"
+
 #include <algorithm>
+#include <fstream>
 #include <vector>
+
+#include "Utils.h"
+#include "Constants.h"
 
 #include <windows.h>
 #include <tlhelp32.h>
+
+#include <assert.h> 
+
+#include <locale>
+#include <codecvt>
 
 
 Utils::Utils()
@@ -19,32 +28,6 @@ Utils::~Utils()
 }
 
 
-std::wstring EXT_VWX(L"vwx");
-
-// PHOTOGRAM extensions
-std::wstring EXT_TIFF(L"tiff");
-std::wstring EXT_TIF(L"tif");
-std::wstring EXT_SVG(L"svg");
-std::wstring EXT_PNG(L"png");
-std::wstring EXT_JPG(L"jpg");
-std::wstring EXT_JPEG(L"jpeg");
-std::wstring EXT_ICO(L"ico");
-std::wstring EXT_GIF(L"gif");
-std::wstring EXT_BMP(L"bmp");
-
-const std::wstring ENV_PROD(L"prod");
-const std::wstring ENV_BETA(L"beta");
-const std::wstring ENV_QA(L"qa");
-const std::wstring ENV_DEVEL(L"devel");
-const std::wstring ENV_ARRAY[] = { ENV_PROD, ENV_BETA, ENV_QA, ENV_DEVEL };
-
-const std::wstring PROD_CONFIG(L"dcc.main.prod_settings");
-const std::wstring BETA_CONFIG(L"dcc.main.beta_settings");
-const std::wstring TEST_CONFIG(L"dcc.main.test_settings");
-const std::wstring DEV_CONFIG(L"dcc.main.dev_settings");
-const std::wstring ENV_CONFIG_ARRAY[] = { PROD_CONFIG, BETA_CONFIG, TEST_CONFIG, DEV_CONFIG };
-
-
 std::wstring Utils::getExtension(std::wstring str) {
 	std::size_t startIndex = str.find_last_of(L".");
 	std::wstring sl = str.substr(startIndex + 1, str.size() - startIndex - 2);
@@ -53,11 +36,11 @@ std::wstring Utils::getExtension(std::wstring str) {
 }
 
 
-
 bool Utils::isVWXType(std::wstring ext) {
 	if (ext.compare(EXT_VWX) == 0) return true;
 	return false;
 }
+
 
 bool Utils::isPhotogramType(std::wstring ext) {
 	if (
@@ -74,17 +57,65 @@ bool Utils::isPhotogramType(std::wstring ext) {
 	return false;
 }
 
-HRESULT Utils::getDCCRoot(std::wstring &out) {
-	PWSTR localAppDataPrograms = NULL;
-	HRESULT hr = SHGetKnownFolderPath(FOLDERID_UserProgramFiles, 0, NULL, &localAppDataPrograms);
-	
+
+HRESULT Utils::readJsonFile(const std::wstring &path, std::wstring &out) {
+	using namespace rapidjson;
+
+	std::string p(path.begin(), path.end());
+	FILE* fp = fopen(p.c_str(), "rb"); // non-Windows use "r"
+
+	char readBuffer[8192];
+	FileReadStream is(fp, readBuffer, sizeof(readBuffer));
+
+	Document d;
+	d.ParseStream(is);
+	fclose(fp);
+
+	bool hasMember = d.HasMember("rootFolder");
+	bool memberIsString = d["rootFolder"].IsString();
+
+	if (hasMember && memberIsString) {
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+		std::wstring wide = converter.from_bytes(d["rootFolder"].GetString());
+		out = wide;
+		return S_OK;
+	}
+
+	return E_INVALIDARG;
+}
+
+
+HRESULT Utils::getLocalAppData(std::wstring &out) {
+	PWSTR localAppData = NULL;
+	HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &localAppData);
+
 	if (SUCCEEDED(hr)) {
-		std::wstring resdir = std::wstring(localAppDataPrograms) + L"\\vectorworks-cloud-services-";
+		std::wstring resdir = std::wstring(localAppData);
 		out = resdir;
 	}
-	CoTaskMemFree(localAppDataPrograms);
+	CoTaskMemFree(localAppData);
 	return hr;
 }
+
+
+std::wstring convert(const std::string& as)
+{
+	wchar_t* buf = new wchar_t[as.size() * 2 + 2];
+	std::wstring rval = buf;
+	delete[] buf;
+	return rval;
+}
+
+
+HRESULT Utils::getSyncedFolder(const std::wstring LOC_APP, const std::wstring ENV_STRING, std::wstring &out) {
+	std::wstring path = LOC_APP
+		+ L"\\Nemetschek\\Vectorworks Cloud Services " + ENV_STRING
+		+ L"\\Cache\\active_session.json";
+
+	HRESULT hr = Utils::readJsonFile(path, out);
+	return hr;
+}
+
 
 HRESULT Utils::getEnv(std::wstring &BASE_DIR, int &out) {
 	DWORD dwAttr;
@@ -103,6 +134,7 @@ HRESULT Utils::getEnv(std::wstring &BASE_DIR, int &out) {
 
 	return E_INVALIDARG;
 }
+
 
 std::wstring Utils::wrapSpacesForCMD(const std::wstring &text, wchar_t* sep) {
 	std::vector<std::wstring> tokens;
@@ -158,6 +190,7 @@ HRESULT Utils::executeAction(std::wstring BG_SRV_CMD, int ENV, std::wstring acti
 	return S_OK;
 }
 
+
 std::wstring Utils::getActions(std::wstring &SELECTION_TYPE, const std::vector <std::wstring> &filesArray) {
 	if (std::all_of(filesArray.begin(), filesArray.end(), [](std::wstring path) {
 		std::wstring ext = Utils::getExtension(path);
@@ -175,7 +208,6 @@ std::wstring Utils::getActions(std::wstring &SELECTION_TYPE, const std::vector <
 }
 
 
-// bool IsProcessRunning() 
 bool Utils::serviceIsRunning(std::wstring sAppName) {
 	PROCESSENTRY32W entry;
 	entry.dwSize = sizeof(PROCESSENTRY32W);

@@ -60,6 +60,9 @@
     <ClInclude Include="OpenWithExt.h.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="OpenWithExt.def">

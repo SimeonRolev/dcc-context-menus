@@ -12,6 +12,8 @@
 #include <winuser.h>
 #include <stdio.h>
 #include "Shlwapi.h"
+#include "Constants.h"
+
 
 #include <string.h>
 
@@ -37,6 +39,8 @@ HDROP     hDrop;
 
 	// Get installation directories
 	if (FAILED(this->setDirs())) return E_INVALIDARG;
+	if (FAILED(Utils::getSyncedFolder(LOC_APP, ENV_ARRAY[ENV], SYNCED_DIR))) return E_INVALIDARG;
+	
 
 	// Check number of files selected
 	UINT uNumFiles = DragQueryFile ( hDrop, 0xFFFFFFFF, NULL, 0 );
@@ -56,6 +60,10 @@ HDROP     hDrop;
 		if (0 == DragQueryFileW(hDrop, i, m_szSelectedFile, MAX_PATH)) { hr = E_INVALIDARG; break; }
 		else PathQuoteSpacesW(m_szSelectedFile);
 
+		// Check if root folder
+		std::wstring f(m_szSelectedFile);
+		if (f.substr(1, SYNCED_DIR.size()).compare(SYNCED_DIR) != 0) return E_INVALIDARG;
+
 		filesArray.push_back(std::wstring(m_szSelectedFile));
 		delete[] m_szSelectedFile;
 	}
@@ -63,9 +71,6 @@ HDROP     hDrop;
 	if (SUCCEEDED(hr)) {
 		Utils::getActions(SELECTION_TYPE, filesArray);
 	}
-
-	// TODO: A place to eventually check if the files are from a certain folder
-	//	if (lstrcmpi(m_szSelectedFile, L"D:\\CheckDCCFolder") != 0) hr = E_INVALIDARG;
 
     GlobalUnlock ( stg.hGlobal );
     ReleaseStgMedium ( &stg );
@@ -127,6 +132,7 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 
     return MAKE_HRESULT ( SEVERITY_SUCCESS, FACILITY_NULL, uID - uidFirstCmd );
 }
+
 
 HRESULT COpenWithCtxMenuExt::GetCommandString (UINT_PTR  idCmd,      UINT uFlags,
                                                 UINT* pwReserved, LPSTR pszName,

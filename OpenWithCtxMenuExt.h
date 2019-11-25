@@ -46,9 +46,12 @@ protected:
 
 private:
 	int ENV;
-	std::wstring BASE_DIR;
+	std::wstring LOC_APP;
+	std::wstring LOC_APP_PROGS;
 
+	std::wstring BASE_DIR;
 	std::wstring RESOURCES_DIR;
+	std::wstring SYNCED_DIR;
 	std::wstring SERVER_DIR;
 	std::wstring ICONS_DIR;
 	std::wstring BG_SRV_CMD;
@@ -57,12 +60,15 @@ private:
 
 public:
 	HRESULT setDirs() {
-		HRESULT hr_base = Utils::getDCCRoot(BASE_DIR);
-		HRESULT hr_env = Utils::getEnv(BASE_DIR, ENV);
+		// Get %LOCALAPPDATA%/Programs dir
+		HRESULT hr_progs = Utils::getLocalAppData(LOC_APP);
+		if (FAILED(hr_progs)) return E_INVALIDARG;
+		LOC_APP_PROGS = LOC_APP + L"\\Programs\\";
 
-		if (FAILED(hr_base) || FAILED(hr_env)) {
-			return E_INVALIDARG;
-		}
+		// Get ENV
+		BASE_DIR = LOC_APP_PROGS + L"\\vectorworks-cloud-services-";
+		HRESULT hr_env = Utils::getEnv(BASE_DIR, ENV);
+		if (FAILED(hr_env)) return E_INVALIDARG;
 
 		RESOURCES_DIR = BASE_DIR + L"resources\\";
 		SERVER_DIR = RESOURCES_DIR + L"server\\";
