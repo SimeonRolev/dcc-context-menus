@@ -1,68 +1,149 @@
 // OpenWithCtxMenuExt.cpp : Implementation of COpenWithCtxMenuExt
 
 #include "stdafx.h"
-#include <string>
+#include "Shlwapi.h"
+
 #include <algorithm>
+#include <array>
+
+#include <string.h>
+#include <windows.h>
+#include <winuser.h>
+#include <stdio.h>
+
 #include "OpenWithExt.h"
 #include "OpenWithCtxMenuExt.h"
 #include "BitmapParser.h"
 #include "Utils.h"
-#include <windows.h>
-#include <array>
-#include <winuser.h>
-#include <stdio.h>
-#include "Shlwapi.h"
 #include "Constants.h"
-
-
-#include <string.h>
+#include "Executor.h"
 
 #pragma comment(lib,"shlwapi")
 
 // COpenWithCtxMenuExt
+
+
+HRESULT COpenWithCtxMenuExt::_setDirs() {
+	if (FAILED(Utils::getLocalAppData(LOC_APP))) return E_INVALIDARG;
+	LOC_APP_RPOGS = localApp() + L"Programs\\";
+
+	if (FAILED(_setEnv())) return E_INVALIDARG;
+
+	// Others
+	RESOURCES_DIR = BASE_DIR + L"resources\\";
+	SERVER_DIR = RESOURCES_DIR + L"server\\";
+	ICONS_DIR = RESOURCES_DIR + L"context_actions\\icons\\";
+	BG_SRV_CMD = Utils::wrapSpacesForCMD(SERVER_DIR, L"\\") + L"\"Vectorworks Cloud Services Background Service\".exe";
+
+	return S_OK;
+};
+
+
+
+HRESULT COpenWithCtxMenuExt::_setEnv() {
+	// Requires that you have %LOCALAPPDATA%\\Programs\\ set
+	if (localAppProgs().empty()) return E_INVALIDARG;
+
+	DWORD dwAttr;
+	std::wstring appDir;
+
+	for (int i = 0; i < ENV_ARRAY->size(); i++) {
+		std::wstring appName = L"vectorworks-cloud-services";
+		if (i > 0) appName.append(L"-").append(ENV_ARRAY[i]);
+
+		appDir = localAppProgs() + appName;
+		dwAttr = GetFileAttributesW(appDir.c_str());
+
+		if (dwAttr != 0xffffffff && (dwAttr & FILE_ATTRIBUTE_DIRECTORY)) {
+			ENV = i;
+			BASE_DIR = appDir + L"\\";
+			return S_OK;
+		};
+	}
+
+	return E_INVALIDARG;
+}
+
+
+// Requires that you have BASE_DIR and ENV set
+HRESULT COpenWithCtxMenuExt::_getSyncedFolder() {
+	if (localApp().empty()) return E_INVALIDARG;
+	if (env() < 0) return E_INVALIDARG;
+
+	std::wstring appName = L"Vectorworks Cloud Services";
+	if (env() > 0) appName.append(L" ").append(label());
+
+	std::wstring path = localApp() +
+		+ L"Nemetschek\\" + appName
+		+ L"\\Cache\\" + ACTIVE_SESSION_FN;
+
+	if (SUCCEEDED(Utils::readJsonFile(path, SYNCED_DIR))) return S_OK;
+	return E_INVALIDARG;
+}
+
+
+HICON COpenWithCtxMenuExt::LoadIcon(const std::wstring &name) {
+	return (HICON)LoadImageW(
+		NULL,
+		(iconsDir() + name).c_str(),
+		IMAGE_ICON,
+		16, 16,
+		LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS
+	);
+}
+
+
+HRESULT COpenWithCtxMenuExt::setUp() {
+	if (FAILED(this->_setDirs()) ||
+		FAILED(this->_getSyncedFolder()) ||
+		FAILED(Utils::serviceIsRunning(L"Vectorworks Cloud Services Background Service.exe"))
+	) return E_INVALIDARG;
+	return S_OK;
+}
+
+
+HRESULT COpenWithCtxMenuExt::failAndClear() {
+	GlobalUnlock(stg.hGlobal);
+	ReleaseStgMedium(&stg);
+	return E_INVALIDARG;
+}
+
 
 HRESULT COpenWithCtxMenuExt::Initialize ( LPCITEMIDLIST pidlFolder,
                                           LPDATAOBJECT pDataObj,
                                           HKEY hProgID )
 {
 FORMATETC fmt = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-STGMEDIUM stg = { TYMED_HGLOBAL };
+this->stg = { TYMED_HGLOBAL };
 HDROP     hDrop;
 	
-    if ( FAILED( pDataObj->GetData ( &fmt, &stg ))) return E_INVALIDARG; // Look for CF_HDROP data in the data object.
+    if ( FAILED( pDataObj->GetData ( &fmt, &stg ))) return failAndClear(); // Look for CF_HDROP data in the data object.
 
     // Get a pointer to the actual data.
     hDrop = (HDROP) GlobalLock ( stg.hGlobal );
-    if ( NULL == hDrop ) return E_INVALIDARG;
+    if ( NULL == hDrop ) return failAndClear();
 
-	if (!Utils::serviceIsRunning(L"Vectorworks Cloud Services Background Service.exe")) return E_INVALIDARG;
+	// Validation: if directories are found and DCC is running
+	if (FAILED(this->setUp())) return failAndClear();
 
-	// Get installation directories
-	if (FAILED(this->setDirs())) return E_INVALIDARG;
-	if (FAILED(Utils::getSyncedFolder(LOC_APP, ENV_ARRAY[ENV], SYNCED_DIR))) return E_INVALIDARG;
-	
-
-	// Check number of files selected
+	// Validation: number of files selected
 	UINT uNumFiles = DragQueryFile ( hDrop, 0xFFFFFFFF, NULL, 0 );
 
     if ( 0 == uNumFiles || 501 < uNumFiles) {
-        GlobalUnlock ( stg.hGlobal );
-        ReleaseStgMedium ( &stg );
-        return E_INVALIDARG;
+		return failAndClear();
     }
 
 	HRESULT hr = S_OK;
 
-	// Add files array that holds the multiple selection
+	// Validation: selected files are from the synced directory
 	for (size_t i = 0; i < uNumFiles; i++) {
 		wchar_t *m_szSelectedFile = new wchar_t[MAX_PATH + 2];
 
-		if (0 == DragQueryFileW(hDrop, i, m_szSelectedFile, MAX_PATH)) { hr = E_INVALIDARG; break; }
+		if (0 == DragQueryFileW(hDrop, i, m_szSelectedFile, MAX_PATH)) { return failAndClear(); }
 		else PathQuoteSpacesW(m_szSelectedFile);
 
-		// Check if root folder
 		std::wstring f(m_szSelectedFile);
-		if (f.substr(1, SYNCED_DIR.size()).compare(SYNCED_DIR) != 0) return E_INVALIDARG;
+		if (f.substr(1, SYNCED_DIR.size()).compare(SYNCED_DIR) != 0) return failAndClear();
 
 		filesArray.push_back(std::wstring(m_szSelectedFile));
 		delete[] m_szSelectedFile;
@@ -70,12 +151,11 @@ HDROP     hDrop;
 
 	if (SUCCEEDED(hr)) {
 		Utils::getActions(SELECTION_TYPE, filesArray);
+		return S_OK;
+
 	}
 
-    GlobalUnlock ( stg.hGlobal );
-    ReleaseStgMedium ( &stg );
-	
-    return hr;
+	return failAndClear();
 }
 
 
@@ -87,13 +167,13 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
     if ( uFlags & CMF_DEFAULTONLY ) return MAKE_HRESULT ( SEVERITY_SUCCESS, FACILITY_NULL, 0 );
 
 	// Load icons
-	HICON ICON_MAIN       = (HICON)LoadImageW(NULL, (ICONS_DIR + L"dcc.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-	HICON ICON_PDF_EXPORT = (HICON)LoadImageW(NULL, (ICONS_DIR + L"pdf.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-	HICON ICON_DISTILL    = (HICON)LoadImageW(NULL, (ICONS_DIR + L"3d.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-	HICON ICON_PHOTOGRAM  = (HICON)LoadImageW(NULL, (ICONS_DIR + L"photo.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-	HICON ICON_LINK       = (HICON)LoadImageW(NULL, (ICONS_DIR + L"link.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-	HICON ICON_NAST       = (HICON)LoadImageW(NULL, (ICONS_DIR + L"nast.ico").c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-	
+	HICON ICON_MAIN = LoadIcon(L"dcc.ico");
+	HICON ICON_PDF_EXPORT = LoadIcon(L"pdf.ico");
+	HICON ICON_DISTILL = LoadIcon(L"3d.ico");
+	HICON ICON_PHOTOGRAM = LoadIcon(L"photo.ico");
+	HICON ICON_LINK = LoadIcon(L"link.ico");
+	HICON ICON_NAST = LoadIcon(L"nast.ico");
+
 	HMENU hSubmenu = CreatePopupMenu();
 	UINT uID = uidFirstCmd;
 
@@ -157,25 +237,27 @@ USES_CONVERSION;
 
 HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
 	if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
+
+	Executor executor = Executor(BG_SRV_CMD, ENV, filesArray);
 	
 	if (Utils::isVWXType(SELECTION_TYPE)) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
-			case 0: { return Utils::executeAction(BG_SRV_CMD, ENV, L"PDF_EXPORT", filesArray); }
-			case 1: { return Utils::executeAction(BG_SRV_CMD, ENV, L"DISTILL", filesArray); }
-			case 2: { return Utils::executeAction(BG_SRV_CMD, ENV, L"LINK", filesArray); }
+			case 0: { return executor.executeAction(L"PDF_EXPORT"); }
+			case 1: { return executor.executeAction(L"DISTILL"); }
+			case 2: { return executor.executeAction(L"LINK"); }
 			// case 3: { Utils::executeAction("SHARE", filesArray); return S_OK; }
 			default: return E_INVALIDARG;
 		}
 	}
 	else if (Utils::isPhotogramType(SELECTION_TYPE)) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
-			case 0: { return Utils::executeAction(BG_SRV_CMD, ENV, L"PHOTOGRAM", filesArray); }
-			case 1: { return Utils::executeAction(BG_SRV_CMD, ENV, L"LINK", filesArray); }
+			case 0: { return executor.executeAction(L"PHOTOGRAM"); }
+			case 1: { return executor.executeAction(L"LINK"); }
 			default: return E_INVALIDARG;
 		}
 	} else {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
-			case 0: { return Utils::executeAction(BG_SRV_CMD, ENV, L"LINK", filesArray); }
+			case 0: { return executor.executeAction(L"LINK"); }
 			default: return E_INVALIDARG;
 		}
 	}

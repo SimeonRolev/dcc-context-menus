@@ -28,6 +28,38 @@ Utils::~Utils()
 }
 
 
+HRESULT Utils::getLocalAppData(std::wstring &out) {
+	PWSTR localAppData = NULL;
+	HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &localAppData);
+
+	if (SUCCEEDED(hr)) {
+		std::wstring resdir = std::wstring(localAppData);
+		out = resdir + L"\\";
+	}
+	CoTaskMemFree(localAppData);
+	return hr;
+}
+
+
+HRESULT Utils::serviceIsRunning(std::wstring sAppName) {
+	PROCESSENTRY32W entry;
+	entry.dwSize = sizeof(PROCESSENTRY32W);
+
+	const auto snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+	bool a = Process32FirstW(snapshot, &entry);
+
+	do {
+		if (!_wcsicmp(entry.szExeFile, sAppName.c_str())) {
+			CloseHandle(snapshot);
+			return S_OK;
+		}
+	} while (Process32NextW(snapshot, &entry));
+
+	CloseHandle(snapshot);
+	return E_INVALIDARG;
+}
+
+
 std::wstring Utils::getExtension(std::wstring str) {
 	std::size_t startIndex = str.find_last_of(L".");
 	std::wstring sl = str.substr(startIndex + 1, str.size() - startIndex - 2);
@@ -79,57 +111,6 @@ HRESULT Utils::readJsonFile(const std::wstring &path, std::wstring &out) {
 		std::wstring wide = converter.from_bytes(d["rootFolder"].GetString());
 		out = wide;
 		return S_OK;
-	}
-
-	return E_INVALIDARG;
-}
-
-
-HRESULT Utils::getLocalAppData(std::wstring &out) {
-	PWSTR localAppData = NULL;
-	HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &localAppData);
-
-	if (SUCCEEDED(hr)) {
-		std::wstring resdir = std::wstring(localAppData);
-		out = resdir;
-	}
-	CoTaskMemFree(localAppData);
-	return hr;
-}
-
-
-std::wstring convert(const std::string& as)
-{
-	wchar_t* buf = new wchar_t[as.size() * 2 + 2];
-	std::wstring rval = buf;
-	delete[] buf;
-	return rval;
-}
-
-
-HRESULT Utils::getSyncedFolder(const std::wstring LOC_APP, const std::wstring ENV_STRING, std::wstring &out) {
-	std::wstring path = LOC_APP
-		+ L"\\Nemetschek\\Vectorworks Cloud Services " + ENV_STRING
-		+ L"\\Cache\\active_session.json";
-
-	HRESULT hr = Utils::readJsonFile(path, out);
-	return hr;
-}
-
-
-HRESULT Utils::getEnv(std::wstring &BASE_DIR, int &out) {
-	DWORD dwAttr;
-	std::wstring appDir;
-
-	for (int i = 0; i < ENV_ARRAY->size(); i++) {
-		appDir = BASE_DIR + ENV_ARRAY[i];
-		dwAttr = GetFileAttributesW(appDir.c_str());
-
-		if (dwAttr != 0xffffffff && (dwAttr & FILE_ATTRIBUTE_DIRECTORY)) {
-			out = i;
-			BASE_DIR = appDir + L"\\";
-			return S_OK;
-		};
 	}
 
 	return E_INVALIDARG;
@@ -205,23 +186,4 @@ std::wstring Utils::getActions(std::wstring &SELECTION_TYPE, const std::vector <
 		SELECTION_TYPE = EXT_JPEG;
 		return EXT_JPEG;
 	} else return L"NONE";
-}
-
-
-bool Utils::serviceIsRunning(std::wstring sAppName) {
-	PROCESSENTRY32W entry;
-	entry.dwSize = sizeof(PROCESSENTRY32W);
-
-	const auto snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-	bool a = Process32FirstW(snapshot, &entry);
-
-	do {
-		if (!_wcsicmp(entry.szExeFile, sAppName.c_str())) {
-			CloseHandle(snapshot);
-			return true;
-		}
-	} while (Process32NextW(snapshot, &entry));
-
-	CloseHandle(snapshot);
-	return false;
 }

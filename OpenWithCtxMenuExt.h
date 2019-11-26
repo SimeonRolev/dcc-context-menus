@@ -4,80 +4,77 @@
 #define __OPENWITHCTXMENUEXT_H_
 
 #include "resource.h"       // main symbols
-#include "Utils.h"
 #include <string>
 #include <vector>
 
-/////////////////////////////////////////////////////////////////////////////
+#include "Constants.h"
+
+
 // COpenWithCtxMenuExt
 
-class ATL_NO_VTABLE COpenWithCtxMenuExt : 
-    public CComObjectRootEx<CComSingleThreadModel>,
-    public CComCoClass<COpenWithCtxMenuExt, &CLSID_OpenWithCtxMenuExt>,
-    public IShellExtInit,
-    public IContextMenu
+class ATL_NO_VTABLE COpenWithCtxMenuExt :
+	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComCoClass<COpenWithCtxMenuExt, &CLSID_OpenWithCtxMenuExt>,
+	public IShellExtInit,
+	public IContextMenu
 {
 public:
-    COpenWithCtxMenuExt()
-    {
-    }
+	COpenWithCtxMenuExt()
+	{
+	}
 
-DECLARE_REGISTRY_RESOURCEID(IDR_OPENWITHCTXMENUEXT)
-DECLARE_NOT_AGGREGATABLE(COpenWithCtxMenuExt)
-DECLARE_PROTECT_FINAL_CONSTRUCT()
+	DECLARE_REGISTRY_RESOURCEID(IDR_OPENWITHCTXMENUEXT)
+	DECLARE_NOT_AGGREGATABLE(COpenWithCtxMenuExt)
+	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
-BEGIN_COM_MAP(COpenWithCtxMenuExt)
-    COM_INTERFACE_ENTRY(IShellExtInit)
-    COM_INTERFACE_ENTRY(IContextMenu)
-END_COM_MAP()
+	BEGIN_COM_MAP(COpenWithCtxMenuExt)
+		COM_INTERFACE_ENTRY(IShellExtInit)
+		COM_INTERFACE_ENTRY(IContextMenu)
+	END_COM_MAP()
 
 public:
-    // IShellExtInit
-    STDMETHOD(Initialize)(LPCITEMIDLIST, LPDATAOBJECT, HKEY);
+	// IShellExtInit
+	STDMETHOD(Initialize)(LPCITEMIDLIST, LPDATAOBJECT, HKEY);
 
-    // IContextMenu
-    STDMETHOD(GetCommandString)(UINT_PTR, UINT, UINT*, LPSTR, UINT);
-    STDMETHOD(InvokeCommand)(LPCMINVOKECOMMANDINFO);
-    STDMETHOD(QueryContextMenu)(HMENU, UINT, UINT, UINT, UINT);
-
-protected:
-    TCHAR m_szSelectedFile[MAX_PATH+2];
-	std::vector<std::wstring> filesArray;
+	// IContextMenu
+	STDMETHOD(GetCommandString)(UINT_PTR, UINT, UINT*, LPSTR, UINT);
+	STDMETHOD(InvokeCommand)(LPCMINVOKECOMMANDINFO);
+	STDMETHOD(QueryContextMenu)(HMENU, UINT, UINT, UINT, UINT);
 
 private:
-	int ENV;
+	STGMEDIUM stg;
+
+	int ENV = -1;
+
 	std::wstring LOC_APP;
-	std::wstring LOC_APP_PROGS;
+	std::wstring LOC_APP_RPOGS;
 
 	std::wstring BASE_DIR;
-	std::wstring RESOURCES_DIR;
 	std::wstring SYNCED_DIR;
+	std::wstring RESOURCES_DIR; // Others	
 	std::wstring SERVER_DIR;
 	std::wstring ICONS_DIR;
 	std::wstring BG_SRV_CMD;
 
 	std::wstring SELECTION_TYPE;
+	std::vector<std::wstring> filesArray;
 
+	HRESULT _setDirs();
+	HRESULT _setEnv();
+	HRESULT _getSyncedFolder();
 public:
-	HRESULT setDirs() {
-		// Get %LOCALAPPDATA%/Programs dir
-		HRESULT hr_progs = Utils::getLocalAppData(LOC_APP);
-		if (FAILED(hr_progs)) return E_INVALIDARG;
-		LOC_APP_PROGS = LOC_APP + L"\\Programs\\";
+	HRESULT setUp();
+	HRESULT failAndClear();
 
-		// Get ENV
-		BASE_DIR = LOC_APP_PROGS + L"\\vectorworks-cloud-services-";
-		HRESULT hr_env = Utils::getEnv(BASE_DIR, ENV);
-		if (FAILED(hr_env)) return E_INVALIDARG;
+	HICON LoadIcon(const std::wstring &name);
 
-		RESOURCES_DIR = BASE_DIR + L"resources\\";
-		SERVER_DIR = RESOURCES_DIR + L"server\\";
-		ICONS_DIR = RESOURCES_DIR + L"context_actions\\icons\\";
-
-		BG_SRV_CMD = Utils::wrapSpacesForCMD(SERVER_DIR, L"\\") + L"\"Vectorworks Cloud Services Background Service\".exe";
-
-		return S_OK;
-	};
+	// Getters
+	int env() { return ENV; }
+	std::wstring localApp() { return LOC_APP; }
+	std::wstring localAppProgs() { return LOC_APP_RPOGS; }
+	std::wstring baseDir() { return BASE_DIR; }
+	std::wstring iconsDir() { return ICONS_DIR; }
+	std::wstring label() { return ENV_ARRAY[env()]; }
 };
 
 #endif //__OPENWITHCTXMENUEXT_H_

@@ -30,6 +30,9 @@
     <ClCompile Include="OpenWithCtxMenuExt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Executor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="OpenWithExt.idl">
@@ -61,6 +64,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Executor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

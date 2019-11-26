@@ -15,18 +15,13 @@ public:
 	~Utils();
 
 	static HRESULT getLocalAppData(std::wstring &out);
-
-	static bool serviceIsRunning(std::wstring sAppName);
-	static HRESULT Utils::readJsonFile(const std::wstring &path, std::wstring &out);
-	static HRESULT Utils::getSyncedFolder(const std::wstring LOC_APP, const std::wstring ENV_STRING, std::wstring &out);
-
+	static HRESULT serviceIsRunning(std::wstring sAppName);
+	
+	static HRESULT readJsonFile(const std::wstring &path, std::wstring &out);
 	static std::wstring getExtension(std::wstring charString);
+	
 	static bool isVWXType(std::wstring ext);
 	static bool isPhotogramType(std::wstring ext);
-
-	// These will be used for directly setting dirs and envs, so references are passed
-	// They return HRESULT to check for possible errors
-	static HRESULT getEnv(std::wstring &BASE_DIR, int &out);
 
 	// CMD command requires proper quotes wrapping
 	static std::wstring wrapSpacesForCMD(const std::wstring &text, wchar_t* sep);
