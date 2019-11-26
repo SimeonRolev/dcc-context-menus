@@ -102,9 +102,14 @@ HRESULT COpenWithCtxMenuExt::setUp() {
 }
 
 
-HRESULT COpenWithCtxMenuExt::failAndClear() {
+void COpenWithCtxMenuExt::clear() {
 	GlobalUnlock(stg.hGlobal);
 	ReleaseStgMedium(&stg);
+}
+
+
+HRESULT COpenWithCtxMenuExt::failAndClear() {
+	clear();
 	return E_INVALIDARG;
 }
 
@@ -117,23 +122,24 @@ FORMATETC fmt = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 this->stg = { TYMED_HGLOBAL };
 HDROP     hDrop;
 	
-    if ( FAILED( pDataObj->GetData ( &fmt, &stg ))) return failAndClear(); // Look for CF_HDROP data in the data object.
+	// Look for CF_HDROP data in the data object.
+    if ( FAILED( pDataObj->GetData ( &fmt, &stg )))
+		return failAndClear(); 
 
     // Get a pointer to the actual data.
     hDrop = (HDROP) GlobalLock ( stg.hGlobal );
-    if ( NULL == hDrop ) return failAndClear();
+    if ( NULL == hDrop )
+		return failAndClear();
 
 	// Validation: if directories are found and DCC is running
-	if (FAILED(this->setUp())) return failAndClear();
+	if (FAILED(this->setUp()))
+		return failAndClear();
 
 	// Validation: number of files selected
 	UINT uNumFiles = DragQueryFile ( hDrop, 0xFFFFFFFF, NULL, 0 );
 
-    if ( 0 == uNumFiles || 501 < uNumFiles) {
+    if ( 0 == uNumFiles || 501 < uNumFiles)
 		return failAndClear();
-    }
-
-	HRESULT hr = S_OK;
 
 	// Validation: selected files are from the synced directory
 	for (size_t i = 0; i < uNumFiles; i++) {
@@ -149,13 +155,9 @@ HDROP     hDrop;
 		delete[] m_szSelectedFile;
 	}
 
-	if (SUCCEEDED(hr)) {
-		Utils::getActions(SELECTION_TYPE, filesArray);
-		return S_OK;
-
-	}
-
-	return failAndClear();
+	Utils::getActions(SELECTION_TYPE, filesArray);
+	clear();
+	return S_OK;
 }
 
 

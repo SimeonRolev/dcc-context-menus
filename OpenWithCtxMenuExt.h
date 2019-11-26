@@ -64,6 +64,7 @@ private:
 	HRESULT _getSyncedFolder();
 public:
 	HRESULT setUp();
+	void clear();
 	HRESULT failAndClear();
 
 	HICON LoadIcon(const std::wstring &name);
