@@ -22,6 +22,7 @@ public:
 	
 	static bool isVWXType(std::wstring ext);
 	static bool isPhotogramType(std::wstring ext);
+	static bool isFolder(std::wstring path);
 
 	// CMD command requires proper quotes wrapping
 	static std::wstring wrapSpacesForCMD(const std::wstring &text, wchar_t* sep);

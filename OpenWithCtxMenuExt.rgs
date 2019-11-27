@@ -14,6 +14,17 @@ HKCU
 					}
 				}
 			}
+			
+			NoRemove Directory
+			{
+				NoRemove ShellEx
+				{
+					NoRemove ContextMenuHandlers
+					{
+						VectorworksCloudServices = s '{AC94BA2C-8211-45D4-AB5C-C2A9BCCC8FB6}'
+					}
+				}
+			}
 
 			NoRemove CLSID
 			{

@@ -39,7 +39,6 @@ HRESULT COpenWithCtxMenuExt::_setDirs() {
 };
 
 
-
 HRESULT COpenWithCtxMenuExt::_setEnv() {
 	// Requires that you have %LOCALAPPDATA%\\Programs\\ set
 	if (localAppProgs().empty()) return E_INVALIDARG;
@@ -52,13 +51,11 @@ HRESULT COpenWithCtxMenuExt::_setEnv() {
 		if (i > 0) appName.append(L"-").append(ENV_ARRAY[i]);
 
 		appDir = localAppProgs() + appName;
-		dwAttr = GetFileAttributesW(appDir.c_str());
-
-		if (dwAttr != 0xffffffff && (dwAttr & FILE_ATTRIBUTE_DIRECTORY)) {
+		if (Utils::isFolder(appDir)) {
 			ENV = i;
 			BASE_DIR = appDir + L"\\";
 			return S_OK;
-		};
+		}
 	}
 
 	return E_INVALIDARG;
@@ -143,16 +140,15 @@ HDROP     hDrop;
 
 	// Validation: selected files are from the synced directory
 	for (size_t i = 0; i < uNumFiles; i++) {
-		wchar_t *m_szSelectedFile = new wchar_t[MAX_PATH + 2];
+		wchar_t *m_szSelectedFile = new wchar_t[MAX_PATH]; // Two quotes and a possible slash at the end for dirs
 
-		if (0 == DragQueryFileW(hDrop, i, m_szSelectedFile, MAX_PATH)) { return failAndClear(); }
-		else PathQuoteSpacesW(m_szSelectedFile);
-
-		std::wstring f(m_szSelectedFile);
-		if (f.substr(1, SYNCED_DIR.size()).compare(SYNCED_DIR) != 0) return failAndClear();
-
-		filesArray.push_back(std::wstring(m_szSelectedFile));
-		delete[] m_szSelectedFile;
+		if (0 == DragQueryFileW(hDrop, i, m_szSelectedFile, MAX_PATH)) return failAndClear();
+		
+		std::wstring entry(m_szSelectedFile);
+		if (Utils::isFolder(entry)) entry.append(L"\\\\");
+		if (entry.substr(0, SYNCED_DIR.size()).compare(SYNCED_DIR) != 0) return failAndClear();
+		std::wstring result = L"\"" + entry + L"\"";
+		filesArray.push_back(result);
 	}
 
 	Utils::getActions(SELECTION_TYPE, filesArray);

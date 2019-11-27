@@ -90,6 +90,14 @@ bool Utils::isPhotogramType(std::wstring ext) {
 }
 
 
+bool Utils::isFolder(std::wstring path) {
+	DWORD dwAttr = GetFileAttributesW(path.c_str());
+	if (dwAttr != 0xffffffff && (dwAttr & FILE_ATTRIBUTE_DIRECTORY))
+		return true;
+	return false;
+}
+
+
 HRESULT Utils::readJsonFile(const std::wstring &path, std::wstring &out) {
 	using namespace rapidjson;
 
@@ -179,10 +187,13 @@ std::wstring Utils::getActions(std::wstring &SELECTION_TYPE, const std::vector <
 	})) {
 		SELECTION_TYPE = EXT_VWX;
 		return EXT_VWX;
-	} else if (std::all_of(filesArray.begin(), filesArray.end(), [](std::wstring path) {
-		std::wstring ext = Utils::getExtension(path);
-		return Utils::isPhotogramType(ext);
-	})) {
+	} else if (
+		(filesArray.size() == 1 && filesArray[0].compare(filesArray[0].length() - 2, 1, L"\\") == 0) || // Single folder
+		std::all_of(filesArray.begin(), filesArray.end(), [](std::wstring path) { // All files are images
+			std::wstring ext = Utils::getExtension(path);
+			return Utils::isPhotogramType(ext);
+		}
+	)) {
 		SELECTION_TYPE = EXT_JPEG;
 		return EXT_JPEG;
 	} else return L"NONE";
