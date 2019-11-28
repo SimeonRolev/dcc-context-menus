@@ -21,8 +21,8 @@ static const std::wstring ENV_ARRAY[] = { ENV_PROD, ENV_BETA, ENV_QA, ENV_DEVEL 
 
 static const std::wstring PROD_CONFIG(L"dcc.main.prod_settings");
 static const std::wstring BETA_CONFIG(L"dcc.main.beta_settings");
-static const std::wstring TEST_CONFIG(L"dcc.main.test_settings");
-static const std::wstring DEV_CONFIG(L"dcc.main.dev_settings");
-static const std::wstring ENV_CONFIG_ARRAY[] = { PROD_CONFIG, BETA_CONFIG, TEST_CONFIG, DEV_CONFIG };
+static const std::wstring QA_CONFIG(L"dcc.main.beta_settings");
+static const std::wstring DEV_CONFIG(L"dcc.main.test_settings");
+static const std::wstring ENV_CONFIG_ARRAY[] = { PROD_CONFIG, BETA_CONFIG, QA_CONFIG, DEV_CONFIG };
 
 static const std::wstring ACTIVE_SESSION_FN(L"active_session.json");

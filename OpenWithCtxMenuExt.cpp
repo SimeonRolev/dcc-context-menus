@@ -10,6 +10,7 @@
 #include <windows.h>
 #include <winuser.h>
 #include <stdio.h>
+#include <tlhelp32.h>
 
 #include "OpenWithExt.h"
 #include "OpenWithCtxMenuExt.h"
@@ -23,43 +24,59 @@
 // COpenWithCtxMenuExt
 
 
-HRESULT COpenWithCtxMenuExt::_setDirs() {
-	if (FAILED(Utils::getLocalAppData(LOC_APP))) return E_INVALIDARG;
-	LOC_APP_RPOGS = localApp() + L"Programs\\";
+HRESULT COpenWithCtxMenuExt::_retrieveService() {
+	std::wstring sAppName = L"Vectorworks Cloud Services Background Service.exe";
 
-	if (FAILED(_setEnv())) return E_INVALIDARG;
+	PROCESSENTRY32W entry;
+	entry.dwSize = sizeof(PROCESSENTRY32W);
 
-	// Others
-	RESOURCES_DIR = BASE_DIR + L"resources\\";
-	SERVER_DIR = RESOURCES_DIR + L"server\\";
-	ICONS_DIR = RESOURCES_DIR + L"context_actions\\icons\\";
-	BG_SRV_CMD = Utils::wrapSpacesForCMD(SERVER_DIR, L"\\") + L"\"Vectorworks Cloud Services Background Service\".exe";
+	const auto snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+	bool a = Process32FirstW(snapshot, &entry);
 
-	return S_OK;
-};
+	do {
+		if (!_wcsicmp(entry.szExeFile, sAppName.c_str())) {
+			const auto snapmodule = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, entry.th32ProcessID);
 
+			MODULEENTRY32W mod;
+			mod.dwSize = sizeof(MODULEENTRY32W);
+			bool m = Module32FirstW(snapmodule, &mod);
 
-HRESULT COpenWithCtxMenuExt::_setEnv() {
-	// Requires that you have %LOCALAPPDATA%\\Programs\\ set
-	if (localAppProgs().empty()) return E_INVALIDARG;
+			std::wstring exePath(mod.szExePath);
+			std::wstring serverPath = exePath.substr(0, exePath.rfind(L"\\"));
+			std::wstring resourcesPath = serverPath.substr(0, serverPath.rfind(L"\\"));
+			std::wstring basePath = resourcesPath.substr(0, resourcesPath.rfind(L"\\"));
+			std::wstring programsPath = basePath.substr(0, basePath.rfind(L"\\"));
+			std::wstring localPath = programsPath.substr(0, programsPath.rfind(L"\\"));
 
-	DWORD dwAttr;
-	std::wstring appDir;
+			// Detected environment
+			std::wstring installedApp = basePath.substr(programsPath.length() + 1, basePath.length());
+			if (installedApp.compare(L"vectorworks-cloud-services") == 0) ENV = 0;
+			else {
+				for (int i = 1; i < ENV_ARRAY->size(); i++) {
+					if (installedApp.rfind(ENV_ARRAY[i]) != std::wstring::npos) ENV = i;
+				}
+			}
 
-	for (int i = 0; i < ENV_ARRAY->size(); i++) {
-		std::wstring appName = L"vectorworks-cloud-services";
-		if (i > 0) appName.append(L"-").append(ENV_ARRAY[i]);
+			if (ENV < 0) return E_INVALIDARG;
 
-		appDir = localAppProgs() + appName;
-		if (Utils::isFolder(appDir)) {
-			ENV = i;
-			BASE_DIR = appDir + L"\\";
+			// Setters
+			LOC_APP = localPath + L"\\";
+			LOC_APP_RPOGS = programsPath + L"\\";
+			BASE_DIR = basePath + L"\\";
+			RESOURCES_DIR = resourcesPath + L"\\";
+			SERVER_DIR = serverPath + L"\\";
+			ICONS_DIR = resourcesPath + L"\\context_actions\\icons\\";
+			BG_SRV_CMD = Utils::wrapSpacesForCMD(SERVER_DIR, L"\\") + L"\"Vectorworks Cloud Services Background Service\".exe";
+
+			CloseHandle(snapshot);
+			CloseHandle(snapmodule);
 			return S_OK;
 		}
-	}
+	} while (Process32NextW(snapshot, &entry));
 
+	CloseHandle(snapshot);
 	return E_INVALIDARG;
-}
+};
 
 
 // Requires that you have BASE_DIR and ENV set
@@ -79,21 +96,9 @@ HRESULT COpenWithCtxMenuExt::_getSyncedFolder() {
 }
 
 
-HICON COpenWithCtxMenuExt::LoadIcon(const std::wstring &name) {
-	return (HICON)LoadImageW(
-		NULL,
-		(iconsDir() + name).c_str(),
-		IMAGE_ICON,
-		16, 16,
-		LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS
-	);
-}
-
-
 HRESULT COpenWithCtxMenuExt::setUp() {
-	if (FAILED(this->_setDirs()) ||
-		FAILED(this->_getSyncedFolder()) ||
-		FAILED(Utils::serviceIsRunning(L"Vectorworks Cloud Services Background Service.exe"))
+	if (FAILED(this->_retrieveService()) ||
+		FAILED(this->_getSyncedFolder())
 	) return E_INVALIDARG;
 	return S_OK;
 }
@@ -108,6 +113,17 @@ void COpenWithCtxMenuExt::clear() {
 HRESULT COpenWithCtxMenuExt::failAndClear() {
 	clear();
 	return E_INVALIDARG;
+}
+
+
+HICON COpenWithCtxMenuExt::LoadIcon(const std::wstring &name) {
+	return (HICON)LoadImageW(
+		NULL,
+		(iconsDir() + name).c_str(),
+		IMAGE_ICON,
+		16, 16,
+		LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS
+	);
 }
 
 
@@ -141,12 +157,21 @@ HDROP     hDrop;
 	// Validation: selected files are from the synced directory
 	for (size_t i = 0; i < uNumFiles; i++) {
 		wchar_t *m_szSelectedFile = new wchar_t[MAX_PATH]; // Two quotes and a possible slash at the end for dirs
-
 		if (0 == DragQueryFileW(hDrop, i, m_szSelectedFile, MAX_PATH)) return failAndClear();
 		
 		std::wstring entry(m_szSelectedFile);
-		if (Utils::isFolder(entry)) entry.append(L"\\\\");
-		if (entry.substr(0, SYNCED_DIR.size()).compare(SYNCED_DIR) != 0) return failAndClear();
+
+		// Validation: disable actions for the whole synced dir
+		if (entry.compare(SYNCED_DIR) == 0)
+			return failAndClear();
+
+		// Validation: the selected entry is a child of the synced folder
+		if (entry.substr(0, SYNCED_DIR.size()).compare(SYNCED_DIR) != 0)
+			return failAndClear();
+
+		if (Utils::isFolder(entry))
+			entry.append(L"\\\\");
+
 		std::wstring result = L"\"" + entry + L"\"";
 		filesArray.push_back(result);
 	}

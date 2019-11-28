@@ -59,8 +59,7 @@ private:
 	std::wstring SELECTION_TYPE;
 	std::vector<std::wstring> filesArray;
 
-	HRESULT _setDirs();
-	HRESULT _setEnv();
+	HRESULT _retrieveService();
 	HRESULT _getSyncedFolder();
 public:
 	HRESULT setUp();

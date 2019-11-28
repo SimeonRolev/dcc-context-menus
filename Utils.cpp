@@ -28,38 +28,6 @@ Utils::~Utils()
 }
 
 
-HRESULT Utils::getLocalAppData(std::wstring &out) {
-	PWSTR localAppData = NULL;
-	HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &localAppData);
-
-	if (SUCCEEDED(hr)) {
-		std::wstring resdir = std::wstring(localAppData);
-		out = resdir + L"\\";
-	}
-	CoTaskMemFree(localAppData);
-	return hr;
-}
-
-
-HRESULT Utils::serviceIsRunning(std::wstring sAppName) {
-	PROCESSENTRY32W entry;
-	entry.dwSize = sizeof(PROCESSENTRY32W);
-
-	const auto snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-	bool a = Process32FirstW(snapshot, &entry);
-
-	do {
-		if (!_wcsicmp(entry.szExeFile, sAppName.c_str())) {
-			CloseHandle(snapshot);
-			return S_OK;
-		}
-	} while (Process32NextW(snapshot, &entry));
-
-	CloseHandle(snapshot);
-	return E_INVALIDARG;
-}
-
-
 std::wstring Utils::getExtension(std::wstring str) {
 	std::size_t startIndex = str.find_last_of(L".");
 	std::wstring sl = str.substr(startIndex + 1, str.size() - startIndex - 2);
@@ -102,23 +70,21 @@ HRESULT Utils::readJsonFile(const std::wstring &path, std::wstring &out) {
 	using namespace rapidjson;
 
 	std::string p(path.begin(), path.end());
-	FILE* fp = fopen(p.c_str(), "rb"); // non-Windows use "r"
+	FILE* fp;
+	if (fp = fopen(p.c_str(), "rb")) {
+		char readBuffer[8192];
+		FileReadStream is(fp, readBuffer, sizeof(readBuffer));
 
-	char readBuffer[8192];
-	FileReadStream is(fp, readBuffer, sizeof(readBuffer));
+		Document d;
+		d.ParseStream(is);
+		fclose(fp);
 
-	Document d;
-	d.ParseStream(is);
-	fclose(fp);
-
-	bool hasMember = d.HasMember("rootFolder");
-	bool memberIsString = d["rootFolder"].IsString();
-
-	if (hasMember && memberIsString) {
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-		std::wstring wide = converter.from_bytes(d["rootFolder"].GetString());
-		out = wide;
-		return S_OK;
+		if (d.HasMember("rootFolder") && d["rootFolder"].IsString()) {
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			std::wstring wide = converter.from_bytes(d["rootFolder"].GetString());
+			out = wide;
+			return S_OK;
+		}
 	}
 
 	return E_INVALIDARG;

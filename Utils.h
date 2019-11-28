@@ -13,9 +13,6 @@ class Utils
 public:
 	Utils();
 	~Utils();
-
-	static HRESULT getLocalAppData(std::wstring &out);
-	static HRESULT serviceIsRunning(std::wstring sAppName);
 	
 	static HRESULT readJsonFile(const std::wstring &path, std::wstring &out);
 	static std::wstring getExtension(std::wstring charString);
