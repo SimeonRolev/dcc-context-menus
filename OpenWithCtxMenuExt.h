@@ -50,17 +50,23 @@ private:
 	std::wstring LOC_APP_RPOGS;
 
 	std::wstring BASE_DIR;
-	std::wstring SYNCED_DIR;
 	std::wstring RESOURCES_DIR; // Others	
 	std::wstring SERVER_DIR;
 	std::wstring ICONS_DIR;
 	std::wstring BG_SRV_CMD;
 
+	// Synced dirs
+	std::wstring SYNCED_DIR;
+	std::wstring DROPBOX_DIR;
+
 	std::wstring SELECTION_TYPE;
 	std::vector<std::wstring> filesArray;
 
 	HRESULT _retrieveService();
-	HRESULT _getSyncedFolder();
+	HRESULT _getSyncedFolders();
+
+	bool childNodeOf(const std::wstring &root, const std::wstring &entry);
+
 public:
 	HRESULT setUp();
 	void clear();
@@ -75,6 +81,9 @@ public:
 	std::wstring baseDir() { return BASE_DIR; }
 	std::wstring iconsDir() { return ICONS_DIR; }
 	std::wstring label() { return ENV_ARRAY[env()]; }
+
+	std::wstring syncDir() { return SYNCED_DIR; }
+	std::wstring dropboxDir() { return DROPBOX_DIR; }
 };
 
 #endif //__OPENWITHCTXMENUEXT_H_

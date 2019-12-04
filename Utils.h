@@ -3,7 +3,6 @@
 
 #include <vector>
 
-#include <nlohmann/json.hpp>
 #include "rapidjson/document.h"
 #include "rapidjson/filereadstream.h"
 
@@ -14,12 +13,12 @@ public:
 	Utils();
 	~Utils();
 	
-	static HRESULT readJsonFile(const std::wstring &path, std::wstring &out);
+	static HRESULT readJsonFile(const std::wstring &path, const char* key, std::wstring &out);
 	static std::wstring getExtension(std::wstring charString);
 	
 	static bool isVWXType(std::wstring ext);
 	static bool isPhotogramType(std::wstring ext);
-	static bool isFolder(std::wstring path);
+	static bool isFolder(const std::wstring &path);
 
 	// CMD command requires proper quotes wrapping
 	static std::wstring wrapSpacesForCMD(const std::wstring &text, wchar_t* sep);

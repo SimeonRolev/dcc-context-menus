@@ -58,7 +58,7 @@ bool Utils::isPhotogramType(std::wstring ext) {
 }
 
 
-bool Utils::isFolder(std::wstring path) {
+bool Utils::isFolder(const std::wstring &path) {
 	DWORD dwAttr = GetFileAttributesW(path.c_str());
 	if (dwAttr != 0xffffffff && (dwAttr & FILE_ATTRIBUTE_DIRECTORY))
 		return true;
@@ -66,7 +66,7 @@ bool Utils::isFolder(std::wstring path) {
 }
 
 
-HRESULT Utils::readJsonFile(const std::wstring &path, std::wstring &out) {
+HRESULT Utils::readJsonFile(const std::wstring &path, const char* key, std::wstring &out) {
 	using namespace rapidjson;
 
 	std::string p(path.begin(), path.end());
@@ -79,12 +79,13 @@ HRESULT Utils::readJsonFile(const std::wstring &path, std::wstring &out) {
 		d.ParseStream(is);
 		fclose(fp);
 
-		if (d.HasMember("rootFolder") && d["rootFolder"].IsString()) {
+		if (d.HasMember(key) && d[key].IsString()) {
 			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-			std::wstring wide = converter.from_bytes(d["rootFolder"].GetString());
+			std::wstring wide = converter.from_bytes(d[key].GetString());
 			out = wide;
-			return S_OK;
 		}
+
+		return S_OK;
 	}
 
 	return E_INVALIDARG;

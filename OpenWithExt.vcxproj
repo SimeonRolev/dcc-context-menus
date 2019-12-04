@@ -301,7 +301,7 @@ echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg" </Command>
       <ObjectFileName>.\Debug\</ObjectFileName>
       <ProgramDataBaseFileName>.\Debug\</ProgramDataBaseFileName>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\nlohmann\include;$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <TypeLibraryName>.\Debug\OpenWithExt.tlb</TypeLibraryName>
@@ -402,7 +402,7 @@ echo Warning : Cannot register Unicode DLL on Windows 95
       <ObjectFileName>.\DebugU\</ObjectFileName>
       <ProgramDataBaseFileName>.\DebugU\</ProgramDataBaseFileName>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\nlohmann\include;$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <TypeLibraryName>.\DebugU\OpenWithExt.tlb</TypeLibraryName>
@@ -504,7 +504,7 @@ echo Warning : Cannot register Unicode DLL on Windows 95
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ObjectFileName>.\ReleaseUMinSize\</ObjectFileName>
       <ProgramDataBaseFileName>.\ReleaseUMinSize\</ProgramDataBaseFileName>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\nlohmann\include;$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <TypeLibraryName>.\ReleaseUMinSize\OpenWithExt.tlb</TypeLibraryName>
@@ -605,7 +605,7 @@ echo Warning : Cannot register Unicode DLL on Windows 95
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ObjectFileName>.\ReleaseUMinDependency\</ObjectFileName>
       <ProgramDataBaseFileName>.\ReleaseUMinDependency\</ProgramDataBaseFileName>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\nlohmann\include;$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <TypeLibraryName>.\ReleaseUMinDependency\OpenWithExt.tlb</TypeLibraryName>
@@ -700,7 +700,7 @@ echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg" </Command>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ObjectFileName>.\ReleaseMinSize\</ObjectFileName>
       <ProgramDataBaseFileName>.\ReleaseMinSize\</ProgramDataBaseFileName>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\nlohmann\include;$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <TypeLibraryName>.\ReleaseMinSize\OpenWithExt.tlb</TypeLibraryName>
@@ -789,7 +789,7 @@ echo regsvr32 exec. time &gt; "$(OutDir)regsvr32.trg" </Command>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ObjectFileName>.\ReleaseMinDependency\</ObjectFileName>
       <ProgramDataBaseFileName>.\ReleaseMinDependency\</ProgramDataBaseFileName>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\nlohmann\include;$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\rapidjson\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <TypeLibraryName>.\ReleaseMinDependency\OpenWithExt.tlb</TypeLibraryName>

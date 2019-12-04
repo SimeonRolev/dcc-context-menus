@@ -80,7 +80,7 @@ HRESULT COpenWithCtxMenuExt::_retrieveService() {
 
 
 // Requires that you have BASE_DIR and ENV set
-HRESULT COpenWithCtxMenuExt::_getSyncedFolder() {
+HRESULT COpenWithCtxMenuExt::_getSyncedFolders() {
 	if (localApp().empty()) return E_INVALIDARG;
 	if (env() < 0) return E_INVALIDARG;
 
@@ -91,14 +91,28 @@ HRESULT COpenWithCtxMenuExt::_getSyncedFolder() {
 		+ L"Nemetschek\\" + appName
 		+ L"\\Cache\\" + ACTIVE_SESSION_FN;
 
-	if (SUCCEEDED(Utils::readJsonFile(path, SYNCED_DIR))) return S_OK;
+	if (
+		SUCCEEDED(Utils::readJsonFile(path, "rootFolder", SYNCED_DIR)) &&
+		SUCCEEDED(Utils::readJsonFile(path, "dropboxFolder", DROPBOX_DIR))
+	) return S_OK;
 	return E_INVALIDARG;
+}
+
+
+bool COpenWithCtxMenuExt::childNodeOf(const std::wstring &root, const std::wstring &entry) {
+	if (
+		root.empty() ||
+		entry.compare(root) == 0 ||  // Should not be the root itself
+		entry.size() < root.size() ||  // entry length should be larger than the root length
+		entry.substr(0, root.size()).compare(root) != 0  // child check
+	) return false;
+	return true;
 }
 
 
 HRESULT COpenWithCtxMenuExt::setUp() {
 	if (FAILED(this->_retrieveService()) ||
-		FAILED(this->_getSyncedFolder())
+		FAILED(this->_getSyncedFolders())
 	) return E_INVALIDARG;
 	return S_OK;
 }
@@ -156,22 +170,16 @@ HDROP     hDrop;
 
 	// Validation: selected files are from the synced directory
 	for (size_t i = 0; i < uNumFiles; i++) {
-		wchar_t *m_szSelectedFile = new wchar_t[MAX_PATH]; // Two quotes and a possible slash at the end for dirs
-		if (0 == DragQueryFileW(hDrop, i, m_szSelectedFile, MAX_PATH)) return failAndClear();
+		wchar_t *m_szSelectedFile = new wchar_t[MAX_PATH];
+		if (0 == DragQueryFileW(hDrop, i, m_szSelectedFile, MAX_PATH))
+			return failAndClear();
 		
 		std::wstring entry(m_szSelectedFile);
 
-		// Validation: disable actions for the whole synced dir
-		if (entry.compare(SYNCED_DIR) == 0)
+		if (!childNodeOf(SYNCED_DIR, entry) && !childNodeOf(DROPBOX_DIR, entry))
 			return failAndClear();
 
-		// Validation: the selected entry is a child of the synced folder
-		if (entry.substr(0, SYNCED_DIR.size()).compare(SYNCED_DIR) != 0)
-			return failAndClear();
-
-		if (Utils::isFolder(entry))
-			entry.append(L"\\\\");
-
+		if (Utils::isFolder(entry)) entry.append(L"\\\\");
 		std::wstring result = L"\"" + entry + L"\"";
 		filesArray.push_back(result);
 	}
