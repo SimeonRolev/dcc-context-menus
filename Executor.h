@@ -6,12 +6,12 @@
 class Executor
 {
 public:
-	Executor(std::wstring BG_SRV_CMD, int ENV, const std::vector<std::wstring> &filesArray);
+	Executor(const std::wstring &bgSrvCmd_, int env_, const std::vector<std::wstring> &filesArray_);
 	~Executor();
 
 	HRESULT executeAction(const std::wstring &action);
 private:
-	int ENV;
-	std::wstring BG_SRV_CMD;
-	std::vector<std::wstring> filesArray;
+	int env_;
+	std::wstring bgSrvCmd_;
+	std::vector<std::wstring> filesArray_;
 };

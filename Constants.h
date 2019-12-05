@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 static const std::wstring EXT_VWX(L"vwx");
 

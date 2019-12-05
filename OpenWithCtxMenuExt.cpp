@@ -21,92 +21,54 @@
 
 #pragma comment(lib,"shlwapi")
 
+using namespace std;
+
 // COpenWithCtxMenuExt
 
 
 HRESULT COpenWithCtxMenuExt::_retrieveService() {
-	std::wstring sAppName = L"Vectorworks Cloud Services Background Service.exe";
+	const wstring exeName = L"Vectorworks Cloud Services Background Service.exe";
+	wstring appPath;
 
-	PROCESSENTRY32W entry;
-	entry.dwSize = sizeof(PROCESSENTRY32W);
+	if (SUCCEEDED(Utils::processPathByName(exeName, appPath))) {
+		map<wstring, wstring> pathsMap = Utils::parsePathsFromExecutable(appPath);
 
-	const auto snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-	bool a = Process32FirstW(snapshot, &entry);
+		// Setters
+		env_ = Utils::envFromAppName(pathsMap[L"installedApp_"]);
+		if (env_ < 0) return E_INVALIDARG;
 
-	do {
-		if (!_wcsicmp(entry.szExeFile, sAppName.c_str())) {
-			const auto snapmodule = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, entry.th32ProcessID);
+		locApp_ = pathsMap[L"locApp_"];
+		locAppProgs_ = pathsMap[L"locApp_"];
+		baseDir_ = pathsMap[L"baseDir_"];
+		resourcesDir_ = pathsMap[L"resourcesDir_"];
+		serverDir_ = pathsMap[L"serverDir_"];
+		iconsDir_ = pathsMap[L"iconsDir_"];
+		bgSrvCmd_ = pathsMap[L"bgSrvCmd_"];
 
-			MODULEENTRY32W mod;
-			mod.dwSize = sizeof(MODULEENTRY32W);
-			bool m = Module32FirstW(snapmodule, &mod);
+		return S_OK;
+	}
 
-			std::wstring exePath(mod.szExePath);
-			std::wstring serverPath = exePath.substr(0, exePath.rfind(L"\\"));
-			std::wstring resourcesPath = serverPath.substr(0, serverPath.rfind(L"\\"));
-			std::wstring basePath = resourcesPath.substr(0, resourcesPath.rfind(L"\\"));
-			std::wstring programsPath = basePath.substr(0, basePath.rfind(L"\\"));
-			std::wstring localPath = programsPath.substr(0, programsPath.rfind(L"\\"));
-
-			// Detected environment
-			std::wstring installedApp = basePath.substr(programsPath.length() + 1, basePath.length());
-			if (installedApp.compare(L"vectorworks-cloud-services") == 0) ENV = 0;
-			else {
-				for (int i = 1; i < ENV_ARRAY->size(); i++) {
-					if (installedApp.rfind(ENV_ARRAY[i]) != std::wstring::npos) ENV = i;
-				}
-			}
-
-			if (ENV < 0) return E_INVALIDARG;
-
-			// Setters
-			LOC_APP = localPath + L"\\";
-			LOC_APP_RPOGS = programsPath + L"\\";
-			BASE_DIR = basePath + L"\\";
-			RESOURCES_DIR = resourcesPath + L"\\";
-			SERVER_DIR = serverPath + L"\\";
-			ICONS_DIR = resourcesPath + L"\\context_actions\\icons\\";
-			BG_SRV_CMD = Utils::wrapSpacesForCMD(SERVER_DIR, L"\\") + L"\"Vectorworks Cloud Services Background Service\".exe";
-
-			CloseHandle(snapshot);
-			CloseHandle(snapmodule);
-			return S_OK;
-		}
-	} while (Process32NextW(snapshot, &entry));
-
-	CloseHandle(snapshot);
 	return E_INVALIDARG;
 };
 
 
-// Requires that you have BASE_DIR and ENV set
+// Requires that you have baseDir_ and env_ set
 HRESULT COpenWithCtxMenuExt::_getSyncedFolders() {
 	if (localApp().empty()) return E_INVALIDARG;
 	if (env() < 0) return E_INVALIDARG;
 
-	std::wstring appName = L"Vectorworks Cloud Services";
+	wstring appName = L"Vectorworks Cloud Services";
 	if (env() > 0) appName.append(L" ").append(label());
 
-	std::wstring path = localApp() +
+	wstring path = localApp() +
 		+ L"Nemetschek\\" + appName
 		+ L"\\Cache\\" + ACTIVE_SESSION_FN;
 
 	if (
-		SUCCEEDED(Utils::readJsonFile(path, "rootFolder", SYNCED_DIR)) &&
-		SUCCEEDED(Utils::readJsonFile(path, "dropboxFolder", DROPBOX_DIR))
+		SUCCEEDED(Utils::readJsonFile(path, "rootFolder", syncDir_)) &&
+		SUCCEEDED(Utils::readJsonFile(path, "dropboxFolder", dropboxDir_))
 	) return S_OK;
 	return E_INVALIDARG;
-}
-
-
-bool COpenWithCtxMenuExt::childNodeOf(const std::wstring &root, const std::wstring &entry) {
-	if (
-		root.empty() ||
-		entry.compare(root) == 0 ||  // Should not be the root itself
-		entry.size() < root.size() ||  // entry length should be larger than the root length
-		entry.substr(0, root.size()).compare(root) != 0  // child check
-	) return false;
-	return true;
 }
 
 
@@ -130,7 +92,7 @@ HRESULT COpenWithCtxMenuExt::failAndClear() {
 }
 
 
-HICON COpenWithCtxMenuExt::LoadIcon(const std::wstring &name) {
+HICON COpenWithCtxMenuExt::LoadIcon(const wstring &name) {
 	return (HICON)LoadImageW(
 		NULL,
 		(iconsDir() + name).c_str(),
@@ -174,17 +136,16 @@ HDROP     hDrop;
 		if (0 == DragQueryFileW(hDrop, i, m_szSelectedFile, MAX_PATH))
 			return failAndClear();
 		
-		std::wstring entry(m_szSelectedFile);
+		wstring entry(m_szSelectedFile);
 
-		if (!childNodeOf(SYNCED_DIR, entry) && !childNodeOf(DROPBOX_DIR, entry))
+		if (!Utils::childNodeOf(syncDir_, entry) && !Utils::childNodeOf(dropboxDir_, entry))
 			return failAndClear();
 
 		if (Utils::isFolder(entry)) entry.append(L"\\\\");
-		std::wstring result = L"\"" + entry + L"\"";
-		filesArray.push_back(result);
+		filesArray_.push_back(entry);
 	}
 
-	Utils::getActions(SELECTION_TYPE, filesArray);
+	this->setSelectionType(Utils::getActions(filesArray_));
 	clear();
 	return S_OK;
 }
@@ -208,7 +169,7 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 	HMENU hSubmenu = CreatePopupMenu();
 	UINT uID = uidFirstCmd;
 
-	if (Utils::isVWXType(SELECTION_TYPE)) {
+	if (Utils::isVWXType(selectionType_)) {
 		InsertMenuW(hSubmenu, 0, MF_BYPOSITION, uID++, _T(L"Generate &PDF"));
 		InsertMenuW(hSubmenu, 1, MF_BYPOSITION, uID++, _T(L"Generate 3D &model"));
 		InsertMenuW(hSubmenu, 2, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
@@ -218,7 +179,7 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 		BitmapParser::AddIconToMenuItem(hSubmenu, 1, true, ICON_DISTILL, true, NULL);
 		BitmapParser::AddIconToMenuItem(hSubmenu, 3, true, ICON_LINK, true, NULL);
 	}
-	else if (Utils::isPhotogramType(SELECTION_TYPE)) {
+	else if (Utils::isPhotogramType(selectionType_)) {
 		InsertMenuW(hSubmenu, 0, MF_BYPOSITION, uID++, _T(L"&Photos to 3D model"));
 		InsertMenuW(hSubmenu, 1, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
 		InsertMenuW(hSubmenu, 2, MF_BYPOSITION, uID++, _T(L"Shareable &link"));
@@ -269,18 +230,18 @@ USES_CONVERSION;
 HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
 	if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
 
-	Executor executor = Executor(BG_SRV_CMD, ENV, filesArray);
+	Executor executor = Executor(bgSrvCmd_, env_, filesArray_);
 	
-	if (Utils::isVWXType(SELECTION_TYPE)) {
+	if (Utils::isVWXType(selectionType_)) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
 			case 0: { return executor.executeAction(L"PDF_EXPORT"); }
 			case 1: { return executor.executeAction(L"DISTILL"); }
 			case 2: { return executor.executeAction(L"LINK"); }
-			// case 3: { Utils::executeAction("SHARE", filesArray); return S_OK; }
+			// case 3: { Utils::executeAction("SHARE", filesArray_); return S_OK; }
 			default: return E_INVALIDARG;
 		}
 	}
-	else if (Utils::isPhotogramType(SELECTION_TYPE)) {
+	else if (Utils::isPhotogramType(selectionType_)) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
 			case 0: { return executor.executeAction(L"PHOTOGRAM"); }
 			case 1: { return executor.executeAction(L"LINK"); }

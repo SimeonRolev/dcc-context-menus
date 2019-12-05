@@ -9,6 +9,8 @@
 
 #include "Constants.h"
 
+using namespace std;
+
 
 // COpenWithCtxMenuExt
 
@@ -44,46 +46,46 @@ public:
 private:
 	STGMEDIUM stg;
 
-	int ENV = -1;
+	int env_ = -1;
 
-	std::wstring LOC_APP;
-	std::wstring LOC_APP_RPOGS;
+	wstring locApp_;
+	wstring locAppProgs_;
 
-	std::wstring BASE_DIR;
-	std::wstring RESOURCES_DIR; // Others	
-	std::wstring SERVER_DIR;
-	std::wstring ICONS_DIR;
-	std::wstring BG_SRV_CMD;
+	wstring baseDir_;
+	wstring resourcesDir_; // Others	
+	wstring serverDir_;
+	wstring iconsDir_;
+	wstring bgSrvCmd_;
 
 	// Synced dirs
-	std::wstring SYNCED_DIR;
-	std::wstring DROPBOX_DIR;
+	wstring syncDir_;
+	wstring dropboxDir_;
 
-	std::wstring SELECTION_TYPE;
-	std::vector<std::wstring> filesArray;
+	wstring selectionType_;
+	vector<wstring> filesArray_;
 
 	HRESULT _retrieveService();
 	HRESULT _getSyncedFolders();
-
-	bool childNodeOf(const std::wstring &root, const std::wstring &entry);
-
 public:
 	HRESULT setUp();
 	void clear();
 	HRESULT failAndClear();
 
-	HICON LoadIcon(const std::wstring &name);
+	HICON LoadIcon(const wstring &name);
 
 	// Getters
-	int env() { return ENV; }
-	std::wstring localApp() { return LOC_APP; }
-	std::wstring localAppProgs() { return LOC_APP_RPOGS; }
-	std::wstring baseDir() { return BASE_DIR; }
-	std::wstring iconsDir() { return ICONS_DIR; }
-	std::wstring label() { return ENV_ARRAY[env()]; }
+	int env() { return env_; }
+	wstring localApp() { return locApp_; }
+	wstring localAppProgs() { return locAppProgs_; }
+	wstring baseDir() { return baseDir_; }
+	wstring iconsDir() { return iconsDir_; }
+	wstring label() { return ENV_ARRAY[env()]; }
 
-	std::wstring syncDir() { return SYNCED_DIR; }
-	std::wstring dropboxDir() { return DROPBOX_DIR; }
+	wstring syncDir() { return syncDir_; }
+	wstring dropboxDir() { return dropboxDir_; }
+
+	// Setters
+	void setSelectionType(wstring input) { this->selectionType_ = input; }
 };
 
 #endif //__OPENWITHCTXMENUEXT_H_
