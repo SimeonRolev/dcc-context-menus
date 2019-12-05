@@ -12,7 +12,7 @@ static const std::wstring EXT_JPG(L"jpg");
 static const std::wstring EXT_JPEG(L"jpeg");
 static const std::wstring EXT_ICO(L"ico");
 static const std::wstring EXT_GIF(L"gif");
-static const std::wstring EXT_BMP(L"bmp");
+static const std::wstring EXT_BMP(L"bmp"); 
 
 static const std::wstring ENV_PROD(L"prod");
 static const std::wstring ENV_BETA(L"beta");

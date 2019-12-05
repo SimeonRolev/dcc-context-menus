@@ -57,6 +57,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\OpenWithExt\packages\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.1.8.1.2\build\native\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.targets" Condition="Exists('..\OpenWithExt\packages\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.1.8.1.2\build\native\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.targets')" />
+    <Import Project="..\OpenWithExt\packages\rapidjson.1.0.2\build\native\rapidjson.targets" Condition="Exists('..\OpenWithExt\packages\rapidjson.1.0.2\build\native\rapidjson.targets')" />
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -84,7 +85,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependecies\rapidjson\include;$(SolutionDir)Dependecies\googletest\include;$(SolutionDir)Dependecies\googlemock\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -128,5 +129,6 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\OpenWithExt\packages\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.1.8.1.2\build\native\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\OpenWithExt\packages\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.1.8.1.2\build\native\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.targets'))" />
+    <Error Condition="!Exists('..\OpenWithExt\packages\rapidjson.1.0.2\build\native\rapidjson.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\OpenWithExt\packages\rapidjson.1.0.2\build\native\rapidjson.targets'))" />
   </Target>
 </Project>
