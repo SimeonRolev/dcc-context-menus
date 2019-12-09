@@ -1,17 +1,23 @@
 #include "stdafx.h"
+
+#include "Application.h"
 #include "Constants.h"
 #include "Executor.h"
 #include "Utils.h"
+
 #include <string>
 #include <vector>
 
 using namespace std;
 
-Executor::Executor(const wstring &bgSrvCmd_, int env_, const vector<wstring> &filesArray_)
+Executor::Executor(Application app)
 {
-	this->bgSrvCmd_ = bgSrvCmd_;
-	this->env_ = env_;
-	this->filesArray_ = filesArray_;
+	wstring a = app.bgSrvCmd();
+	this->command = L"cmd /C " + app.bgSrvCmd() + L" --config=" + ENV_CONFIG_ARRAY[app.env()] + L" ";
+	for (int i = 0; i < app.filesArray().size(); i++) {
+		this->command.append(Utils::placeQuotes(app.filesArray()[i]));
+		this->command.append(L" ");
+	}
 }
 
 
@@ -24,11 +30,7 @@ HRESULT Executor::executeAction(const wstring &action) {
 	STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
 
-	wstring result(L"cmd /C " + bgSrvCmd_ + L" --config=" + ENV_CONFIG_ARRAY[env_] + L" ");
-	for (int i = 0; i < filesArray_.size(); i++) {
-		result.append(Utils::placeQuotes(filesArray_[i]));
-		result.append(L" ");
-	}
+	wstring result = wstring(this->command);
 	result.append(action);
 
 	const wchar_t* _command = result.c_str();

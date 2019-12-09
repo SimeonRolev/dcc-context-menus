@@ -174,7 +174,7 @@ USES_CONVERSION;
 HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
 	if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
 
-	Executor executor = Executor(app_.bgSrvCmd(), app_.env(), app_.filesArray());
+	Executor executor = Executor(app_);
 	
 	if (Utils::isVWXType(app_.selectionType())) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {

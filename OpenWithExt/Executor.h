@@ -2,17 +2,17 @@
 #include <string>
 #include <vector>
 
+#include "Application.h"
+
 using namespace std;
 
 class Executor
 {
 public:
-	Executor(const wstring &bgSrvCmd_, int env_, const vector<wstring> &filesArray_);
+	Executor(Application app);
 	~Executor();
 
 	HRESULT executeAction(const wstring &action);
 private:
-	int env_;
-	wstring bgSrvCmd_;
-	vector<wstring> filesArray_;
+	wstring command;
 };

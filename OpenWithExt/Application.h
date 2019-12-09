@@ -37,25 +37,25 @@ public:
 	// Getters
 	int env() { return env_; }
 
-	const wstring localApp() { return paths_[L"LOCAL_APP"]; }
-	const wstring localAppProgs() { return paths_[L"LOCAL_APP_PROGS"]; }
-	const wstring baseDir() { return paths_[L"BASE"]; }
-	const wstring resourcesDir() { return paths_[L"RESOURCES"]; }
-	const wstring serverDir() { return paths_[L"SERVER"]; }
-	const wstring iconsDir() { return paths_[L"ICONS"]; }
+	wstring localApp() { return paths_[L"LOCAL_APP"]; }
+	wstring localAppProgs() { return paths_[L"LOCAL_APP_PROGS"]; }
+	wstring baseDir() { return paths_[L"BASE"]; }
+	wstring resourcesDir() { return paths_[L"RESOURCES"]; }
+	wstring serverDir() { return paths_[L"SERVER"]; }
+	wstring iconsDir() { return paths_[L"ICONS"]; }
 
-	const wstring installedApp() { return paths_[L"installedApp_"]; }
-	const wstring bgSrvCmd() { return paths_[L"bgSrvCmd_"]; }
+	wstring installedApp() { return paths_[L"installedApp_"]; }
+	wstring bgSrvCmd() { return paths_[L"bgSrvCmd_"]; }
 
-	const wstring label() { return ENV_ARRAY[env()]; }
+	wstring label() { return ENV_ARRAY[env()]; }
 
-	const wstring syncDir() { return syncDir_; }
-	const wstring dropboxDir() { return dropboxDir_; }
+	wstring syncDir() { return syncDir_; }
+	wstring dropboxDir() { return dropboxDir_; }
 
-	const wstring selectionType() { return selectionType_; }
-	const vector<wstring> filesArray() { return filesArray_; }
+	wstring selectionType() { return selectionType_; }
+	vector<wstring> filesArray() { return filesArray_; }
 
-	const map<wstring, wstring> paths() { return paths_; }
+	map<wstring, wstring> paths() { return paths_; }
 
 	// Setters
 	void setEnv(const int &in) { this->env_ = in; };
