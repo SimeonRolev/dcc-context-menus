@@ -87,13 +87,13 @@ TEST(TestUtils, parseFromExe) {
 	const wstring exePathBeta = L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-beta\\resources\\server\\Vectorworks Cloud Services Background Service.exe";
 	map<wstring, wstring> res = Utils::parsePathsFromExecutable(exePathBeta);
 
-	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\", res[L"locApp_"]);
-	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\", res[L"locAppProgs_"]);
+	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\", res[L"LOCAL_APP"]);
+	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\", res[L"LOCAL_APP_PROGS"]);
 	ASSERT_EQ(L"vectorworks-cloud-services-beta", res[L"installedApp_"]);
-	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-beta\\", res[L"baseDir_"]);
-	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-beta\\resources\\", res[L"resourcesDir_"]);
-	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-beta\\resources\\server\\", res[L"serverDir_"]);
-	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-beta\\resources\\context_actions\\icons\\", res[L"iconsDir_"]);
+	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-beta\\", res[L"BASE"]);
+	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-beta\\resources\\", res[L"RESOURCES"]);
+	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-beta\\resources\\server\\", res[L"SERVER"]);
+	ASSERT_EQ(L"C:\\Users\\simeon rolev\\AppData\\Local\\Programs\\vectorworks-cloud-services-beta\\resources\\context_actions\\icons\\", res[L"ICONS"]);
 	ASSERT_EQ(L"C:\\Users\\\"simeon rolev\"\\AppData\\Local\\Programs\\vectorworks-cloud-services-beta\\resources\\server\\\"Vectorworks Cloud Services Background Service\".exe", res[L"bgSrvCmd_"]);
 }
 

@@ -23,63 +23,8 @@
 
 using namespace std;
 
+
 // COpenWithCtxMenuExt
-
-
-HRESULT COpenWithCtxMenuExt::_retrieveService() {
-	const wstring exeName = L"Vectorworks Cloud Services Background Service.exe";
-	wstring appPath;
-
-	if (SUCCEEDED(Utils::processPathByName(exeName, appPath))) {
-		map<wstring, wstring> pathsMap = Utils::parsePathsFromExecutable(appPath);
-
-		// Setters
-		env_ = Utils::envFromAppName(pathsMap[L"installedApp_"]);
-		if (env_ < 0) return E_INVALIDARG;
-
-		locApp_ = pathsMap[L"locApp_"];
-		locAppProgs_ = pathsMap[L"locApp_"];
-		baseDir_ = pathsMap[L"baseDir_"];
-		resourcesDir_ = pathsMap[L"resourcesDir_"];
-		serverDir_ = pathsMap[L"serverDir_"];
-		iconsDir_ = pathsMap[L"iconsDir_"];
-		bgSrvCmd_ = pathsMap[L"bgSrvCmd_"];
-
-		return S_OK;
-	}
-
-	return E_INVALIDARG;
-};
-
-
-// Requires that you have baseDir_ and env_ set
-HRESULT COpenWithCtxMenuExt::_getSyncedFolders() {
-	if (localApp().empty()) return E_INVALIDARG;
-	if (env() < 0) return E_INVALIDARG;
-
-	wstring appName = L"Vectorworks Cloud Services";
-	if (env() > 0) appName.append(L" ").append(label());
-
-	wstring path = localApp() +
-		+ L"Nemetschek\\" + appName
-		+ L"\\Cache\\" + ACTIVE_SESSION_FN;
-
-	if (
-		SUCCEEDED(Utils::readJsonFile(path, "rootFolder", syncDir_)) &&
-		SUCCEEDED(Utils::readJsonFile(path, "dropboxFolder", dropboxDir_))
-	) return S_OK;
-	return E_INVALIDARG;
-}
-
-
-HRESULT COpenWithCtxMenuExt::setUp() {
-	if (FAILED(this->_retrieveService()) ||
-		FAILED(this->_getSyncedFolders())
-	) return E_INVALIDARG;
-	return S_OK;
-}
-
-
 void COpenWithCtxMenuExt::clear() {
 	GlobalUnlock(stg.hGlobal);
 	ReleaseStgMedium(&stg);
@@ -95,12 +40,13 @@ HRESULT COpenWithCtxMenuExt::failAndClear() {
 HICON COpenWithCtxMenuExt::LoadIcon(const wstring &name) {
 	return (HICON)LoadImageW(
 		NULL,
-		(iconsDir() + name).c_str(),
+		(app_.iconsDir() + name).c_str(),
 		IMAGE_ICON,
 		16, 16,
 		LR_LOADFROMFILE | LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS
 	);
 }
+
 
 
 HRESULT COpenWithCtxMenuExt::Initialize ( LPCITEMIDLIST pidlFolder,
@@ -120,14 +66,14 @@ HDROP     hDrop;
     if ( NULL == hDrop )
 		return failAndClear();
 
-	// Validation: if directories are found and DCC is running
-	if (FAILED(this->setUp()))
-		return failAndClear();
-
 	// Validation: number of files selected
 	UINT uNumFiles = DragQueryFile ( hDrop, 0xFFFFFFFF, NULL, 0 );
 
     if ( 0 == uNumFiles || 501 < uNumFiles)
+		return failAndClear();
+
+	// Validation: if directories are found and DCC is running
+	if (FAILED(app_.setUp()))
 		return failAndClear();
 
 	// Validation: selected files are from the synced directory
@@ -136,16 +82,14 @@ HDROP     hDrop;
 		if (0 == DragQueryFileW(hDrop, i, m_szSelectedFile, MAX_PATH))
 			return failAndClear();
 		
-		wstring entry(m_szSelectedFile);
-
-		if (!Utils::childNodeOf(syncDir_, entry) && !Utils::childNodeOf(dropboxDir_, entry))
+		const wstring entry(m_szSelectedFile);
+		if (FAILED(app_.parseFile(entry)))
 			return failAndClear();
 
-		if (Utils::isFolder(entry)) entry.append(L"\\\\");
-		filesArray_.push_back(entry);
+		delete m_szSelectedFile;
 	}
 
-	this->setSelectionType(Utils::getActions(filesArray_));
+	app_.setSelectionType();
 	clear();
 	return S_OK;
 }
@@ -169,7 +113,7 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 	HMENU hSubmenu = CreatePopupMenu();
 	UINT uID = uidFirstCmd;
 
-	if (Utils::isVWXType(selectionType_)) {
+	if (Utils::isVWXType(app_.selectionType())) {
 		InsertMenuW(hSubmenu, 0, MF_BYPOSITION, uID++, _T(L"Generate &PDF"));
 		InsertMenuW(hSubmenu, 1, MF_BYPOSITION, uID++, _T(L"Generate 3D &model"));
 		InsertMenuW(hSubmenu, 2, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
@@ -179,7 +123,7 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 		BitmapParser::AddIconToMenuItem(hSubmenu, 1, true, ICON_DISTILL, true, NULL);
 		BitmapParser::AddIconToMenuItem(hSubmenu, 3, true, ICON_LINK, true, NULL);
 	}
-	else if (Utils::isPhotogramType(selectionType_)) {
+	else if (Utils::isPhotogramType(app_.selectionType())) {
 		InsertMenuW(hSubmenu, 0, MF_BYPOSITION, uID++, _T(L"&Photos to 3D model"));
 		InsertMenuW(hSubmenu, 1, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
 		InsertMenuW(hSubmenu, 2, MF_BYPOSITION, uID++, _T(L"Shareable &link"));
@@ -230,9 +174,9 @@ USES_CONVERSION;
 HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
 	if (0 != HIWORD(pCmdInfo->lpVerb)) return E_INVALIDARG;
 
-	Executor executor = Executor(bgSrvCmd_, env_, filesArray_);
+	Executor executor = Executor(app_.bgSrvCmd(), app_.env(), app_.filesArray());
 	
-	if (Utils::isVWXType(selectionType_)) {
+	if (Utils::isVWXType(app_.selectionType())) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
 			case 0: { return executor.executeAction(L"PDF_EXPORT"); }
 			case 1: { return executor.executeAction(L"DISTILL"); }
@@ -241,7 +185,7 @@ HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
 			default: return E_INVALIDARG;
 		}
 	}
-	else if (Utils::isPhotogramType(selectionType_)) {
+	else if (Utils::isPhotogramType(app_.selectionType())) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
 			case 0: { return executor.executeAction(L"PHOTOGRAM"); }
 			case 1: { return executor.executeAction(L"LINK"); }

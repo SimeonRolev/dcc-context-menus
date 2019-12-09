@@ -16,7 +16,7 @@ public:
 	Utils();
 	~Utils();
 
-	static map<wstring, wstring> parsePathsFromExecutable(const wstring &BG_SERVICE_PATH);
+	static const map<wstring, wstring> parsePathsFromExecutable(const wstring &BG_SERVICE_PATH);
 
 	static HRESULT readJsonFile(const wstring &path, const char* key, wstring &out);
 	static HRESULT Utils::processPathByName(const wstring &appName, wstring &out);

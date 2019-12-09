@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
+using namespace std;
 
-
-Executor::Executor(const std::wstring &bgSrvCmd_, int env_, const std::vector<std::wstring> &filesArray_)
+Executor::Executor(const wstring &bgSrvCmd_, int env_, const vector<wstring> &filesArray_)
 {
 	this->bgSrvCmd_ = bgSrvCmd_;
 	this->env_ = env_;
@@ -20,11 +20,11 @@ Executor::~Executor()
 }
 
 
-HRESULT Executor::executeAction(const std::wstring &action) {
+HRESULT Executor::executeAction(const wstring &action) {
 	STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
 
-	std::wstring result(L"cmd /C " + bgSrvCmd_ + L" --config=" + ENV_CONFIG_ARRAY[env_] + L" ");
+	wstring result(L"cmd /C " + bgSrvCmd_ + L" --config=" + ENV_CONFIG_ARRAY[env_] + L" ");
 	for (int i = 0; i < filesArray_.size(); i++) {
 		result.append(Utils::placeQuotes(filesArray_[i]));
 		result.append(L" ");

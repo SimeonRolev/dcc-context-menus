@@ -32,7 +32,7 @@ Utils::~Utils()
 }
 
 
-map<wstring, wstring> Utils::parsePathsFromExecutable(const wstring &exePath) {
+const map<wstring, wstring> Utils::parsePathsFromExecutable(const wstring &exePath) {
 	wstring serverPath = exePath.substr(0, exePath.rfind(L"\\"));
 	wstring resourcesPath = serverPath.substr(0, serverPath.rfind(L"\\"));
 	wstring basePath = resourcesPath.substr(0, resourcesPath.rfind(L"\\"));
@@ -41,13 +41,14 @@ map<wstring, wstring> Utils::parsePathsFromExecutable(const wstring &exePath) {
 	wstring installedApp = basePath.substr(programsPath.length() + 1, basePath.length());
 
 	map<wstring, wstring> res;
-	res.insert(pair<wstring, wstring>(L"locApp_", localPath + L"\\"));
-	res.insert(pair<wstring, wstring>(L"locAppProgs_", programsPath + L"\\"));
+	res.insert(pair<wstring, wstring>(L"LOCAL_APP", localPath + L"\\"));
+	res.insert(pair<wstring, wstring>(L"LOCAL_APP_PROGS", programsPath + L"\\"));
+	res.insert(pair<wstring, wstring>(L"BASE", basePath + L"\\"));
+	res.insert(pair<wstring, wstring>(L"RESOURCES", resourcesPath + L"\\"));
+	res.insert(pair<wstring, wstring>(L"SERVER", serverPath + L"\\"));
+	res.insert(pair<wstring, wstring>(L"ICONS", resourcesPath + L"\\context_actions\\icons\\"));
+	
 	res.insert(pair<wstring, wstring>(L"installedApp_", installedApp));
-	res.insert(pair<wstring, wstring>(L"baseDir_", basePath + L"\\"));
-	res.insert(pair<wstring, wstring>(L"resourcesDir_", resourcesPath + L"\\"));
-	res.insert(pair<wstring, wstring>(L"serverDir_", serverPath + L"\\"));
-	res.insert(pair<wstring, wstring>(L"iconsDir_", resourcesPath + L"\\context_actions\\icons\\"));
 	res.insert(pair<wstring, wstring>(L"bgSrvCmd_", Utils::wrapSpacesForCMD(serverPath + L"\\", L"\\") + L"\"Vectorworks Cloud Services Background Service\".exe"));
 
 	return res;

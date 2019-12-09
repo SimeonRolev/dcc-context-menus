@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "Application.h"
 #include "Constants.h"
 
 using namespace std;
@@ -46,46 +47,13 @@ public:
 private:
 	STGMEDIUM stg;
 
-	int env_ = -1;
-
-	wstring locApp_;
-	wstring locAppProgs_;
-
-	wstring baseDir_;
-	wstring resourcesDir_; // Others	
-	wstring serverDir_;
-	wstring iconsDir_;
-	wstring bgSrvCmd_;
-
-	// Synced dirs
-	wstring syncDir_;
-	wstring dropboxDir_;
-
-	wstring selectionType_;
-	vector<wstring> filesArray_;
-
-	HRESULT _retrieveService();
-	HRESULT _getSyncedFolders();
+	Application app_;
 public:
-	HRESULT setUp();
 	void clear();
 	HRESULT failAndClear();
-
 	HICON LoadIcon(const wstring &name);
 
-	// Getters
-	int env() { return env_; }
-	wstring localApp() { return locApp_; }
-	wstring localAppProgs() { return locAppProgs_; }
-	wstring baseDir() { return baseDir_; }
-	wstring iconsDir() { return iconsDir_; }
-	wstring label() { return ENV_ARRAY[env()]; }
-
-	wstring syncDir() { return syncDir_; }
-	wstring dropboxDir() { return dropboxDir_; }
-
-	// Setters
-	void setSelectionType(wstring input) { this->selectionType_ = input; }
+	Application app () { return app_; };
 };
 
 #endif //__OPENWITHCTXMENUEXT_H_
