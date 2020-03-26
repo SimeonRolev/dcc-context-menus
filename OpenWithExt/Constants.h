@@ -14,7 +14,9 @@ static const wstring EXT_JPG(L"jpg");
 static const wstring EXT_JPEG(L"jpeg");
 static const wstring EXT_ICO(L"ico");
 static const wstring EXT_GIF(L"gif");
-static const wstring EXT_BMP(L"bmp"); 
+static const wstring EXT_BMP(L"bmp");
+
+static const wstring EXT_SINGLE_FOLDER(L"SINLE_FOLDER");
 
 static const wstring ENV_PROD(L"prod");
 static const wstring ENV_BETA(L"beta");

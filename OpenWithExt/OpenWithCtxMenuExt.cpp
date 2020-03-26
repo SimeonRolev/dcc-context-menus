@@ -103,12 +103,13 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
     if ( uFlags & CMF_DEFAULTONLY ) return MAKE_HRESULT ( SEVERITY_SUCCESS, FACILITY_NULL, 0 );
 
 	// Load icons
-	HICON ICON_MAIN = LoadIcon(L"dcc.ico");
+	HICON ICON_MAIN = LoadIcon(L"application.ico");
 	HICON ICON_PDF_EXPORT = LoadIcon(L"pdf.ico");
 	HICON ICON_DISTILL = LoadIcon(L"3d.ico");
 	HICON ICON_PHOTOGRAM = LoadIcon(L"photo.ico");
 	HICON ICON_LINK = LoadIcon(L"link.ico");
 	HICON ICON_NAST = LoadIcon(L"nast.ico");
+	HICON ICON_UPSAMPLE = LoadIcon(L"upsample.ico");
 
 	HMENU hSubmenu = CreatePopupMenu();
 	UINT uID = uidFirstCmd;
@@ -123,13 +124,25 @@ HRESULT COpenWithCtxMenuExt::QueryContextMenu ( HMENU hmenu, UINT  uMenuIndex,
 		BitmapParser::AddIconToMenuItem(hSubmenu, 1, true, ICON_DISTILL, true, NULL);
 		BitmapParser::AddIconToMenuItem(hSubmenu, 3, true, ICON_LINK, true, NULL);
 	}
-	else if (Utils::isPhotogramType(app_.selectionType())) {
+	else if (Utils::isSingleFolderType(app_.selectionType())) {
 		InsertMenuW(hSubmenu, 0, MF_BYPOSITION, uID++, _T(L"&Photos to 3D model"));
 		InsertMenuW(hSubmenu, 1, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
 		InsertMenuW(hSubmenu, 2, MF_BYPOSITION, uID++, _T(L"Shareable &link"));
 
 		BitmapParser::AddIconToMenuItem(hSubmenu, 0, true, ICON_PHOTOGRAM, true, NULL);
 		BitmapParser::AddIconToMenuItem(hSubmenu, 2, true, ICON_LINK, true, NULL);
+	}
+	else if (Utils::isPhotogramType(app_.selectionType())) {
+		InsertMenuW(hSubmenu, 0, MF_BYPOSITION, uID++, _T(L"&Photos to 3D model"));
+		InsertMenuW(hSubmenu, 1, MF_BYPOSITION, uID++, _T(L"&Stylize images"));
+		InsertMenuW(hSubmenu, 2, MF_BYPOSITION, uID++, _T(L"&Upsample images"));
+		InsertMenuW(hSubmenu, 3, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
+		InsertMenuW(hSubmenu, 4, MF_BYPOSITION, uID++, _T(L"Shareable &link"));
+
+		BitmapParser::AddIconToMenuItem(hSubmenu, 0, true, ICON_PHOTOGRAM, true, NULL);
+		BitmapParser::AddIconToMenuItem(hSubmenu, 1, true, ICON_NAST, true, NULL);
+		BitmapParser::AddIconToMenuItem(hSubmenu, 2, true, ICON_UPSAMPLE, true, NULL);
+		BitmapParser::AddIconToMenuItem(hSubmenu, 4, true, ICON_LINK, true, NULL);
 	}
 	else {
 		InsertMenuW(hSubmenu, 0, MF_BYPOSITION, uID++, _T(L"Shareable &link"));
@@ -185,13 +198,23 @@ HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
 			default: return E_INVALIDARG;
 		}
 	}
-	else if (Utils::isPhotogramType(app_.selectionType())) {
+	else if (Utils::isSingleFolderType(app_.selectionType())) {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
 			case 0: { return executor.executeAction(L"PHOTOGRAM"); }
 			case 1: { return executor.executeAction(L"LINK"); }
 			default: return E_INVALIDARG;
 		}
-	} else {
+	}
+	else if (Utils::isPhotogramType(app_.selectionType())) {
+		switch (LOWORD(pCmdInfo->lpVerb)) {
+		case 0: { return executor.executeAction(L"PHOTOGRAM"); }
+		case 1: { return executor.executeAction(L"STYLIZE"); }
+		case 2: { return executor.executeAction(L"UPSAMPLE"); }
+		case 4: { return executor.executeAction(L"LINK"); }
+		default: return E_INVALIDARG;
+		}
+	}
+	else {
 		switch (LOWORD(pCmdInfo->lpVerb)) {
 			case 0: { return executor.executeAction(L"LINK"); }
 			default: return E_INVALIDARG;

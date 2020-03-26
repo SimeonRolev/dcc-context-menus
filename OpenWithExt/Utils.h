@@ -24,6 +24,7 @@ public:
 	static int envFromAppName(const wstring &installedApp);
 
 	static bool isVWXType(wstring ext);
+	static bool isSingleFolderType(wstring ext);
 	static bool isPhotogramType(wstring ext);
 	static bool isFolder(const wstring &path);
 	static bool childNodeOf(const wstring &root, const wstring &entry);

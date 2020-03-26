@@ -126,6 +126,10 @@ bool Utils::isVWXType(wstring ext) {
 	return false;
 }
 
+bool Utils::isSingleFolderType(wstring ext) {
+	if (ext.compare(EXT_SINGLE_FOLDER) == 0) return true;
+	return false;
+}
 
 bool Utils::isPhotogramType(wstring ext) {
 	if (
@@ -213,8 +217,9 @@ wstring Utils::getActions(const vector <wstring> &filesArray_) {
 		wstring ext = Utils::getExtension(path);
 		return ext.compare(EXT_VWX) == 0;
 	})) return EXT_VWX;
+	else if (filesArray_.size() == 1 && filesArray_[0].compare(filesArray_[0].length() - 2, 1, L"\\") == 0)
+		return EXT_SINGLE_FOLDER;
 	else if (
-		(filesArray_.size() == 1 && filesArray_[0].compare(filesArray_[0].length() - 2, 1, L"\\") == 0) || // Single folder
 		all_of(filesArray_.begin(), filesArray_.end(), [](wstring path) { // All files are images
 			wstring ext = Utils::getExtension(path);
 			return Utils::isPhotogramType(ext);
