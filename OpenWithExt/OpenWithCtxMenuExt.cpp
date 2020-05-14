@@ -210,7 +210,7 @@ HRESULT COpenWithCtxMenuExt::InvokeCommand ( LPCMINVOKECOMMANDINFO pCmdInfo ) {
 		case 0: { return executor.executeAction(L"PHOTOGRAM"); }
 		case 1: { return executor.executeAction(L"STYLIZE"); }
 		case 2: { return executor.executeAction(L"UPSAMPLE"); }
-		case 4: { return executor.executeAction(L"LINK"); }
+		case 3: { return executor.executeAction(L"LINK"); }
 		default: return E_INVALIDARG;
 		}
 	}
