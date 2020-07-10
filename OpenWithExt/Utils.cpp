@@ -49,7 +49,6 @@ const map<wstring, wstring> Utils::parsePathsFromExecutable(const wstring &exePa
 	res.insert(pair<wstring, wstring>(L"ICONS", resourcesPath + L"\\context_actions\\icons\\"));
 	
 	res.insert(pair<wstring, wstring>(L"installedApp_", installedApp));
-	res.insert(pair<wstring, wstring>(L"bgSrvCmd_", Utils::wrapSpacesForCMD(serverPath + L"\\", L"\\") + L"\"Vectorworks Cloud Services Background Service\".exe"));
 
 	return res;
 }
@@ -113,7 +112,7 @@ int Utils::envFromAppName(const wstring &installedApp) {
 	int env_ = -1;
 	if (installedApp.compare(L"vectorworks-cloud-services") == 0) env_ = 0;
 	else {
-		for (int i = 1; i < ENV_ARRAY->size(); i++) {
+		for (int i = 1; i < sizeof(ENV_ARRAY) / sizeof(ENV_ARRAY[0]); i++) {
 			if (installedApp.rfind(ENV_ARRAY[i]) != wstring::npos) env_ = i;
 		}
 	}

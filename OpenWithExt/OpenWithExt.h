@@ -4,7 +4,7 @@
 
 
  /* File created by MIDL compiler version 8.00.0603 */
-/* at Thu May 14 15:24:11 2020
+/* at Fri Jul 10 12:02:37 2020
  */
 /* Compiler settings for OpenWithExt.idl:
     Oicf, W1, Zp8, env=Win64 (32b run), target_arch=AMD64 8.00.0603 
