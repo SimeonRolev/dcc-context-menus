@@ -14,10 +14,8 @@ Executor::Executor(Application app)
 {
 	wstring a = app.bgSrvCmd();
 	this->command = L"cmd /C cd /d " +
-		Utils::wrapSpacesForCMD(app.serverDir(), L"\\") +
-		L" && set ENV_FOR_DYNACONF=" + ENV_ARRAY[app.env()] + L" && " +
-		L"\"Vectorworks Cloud Services Background Service\".exe" +
-		L" --config=" + ENV_CONFIG_ARRAY[app.env()] + L" ";
+		Utils::wrapSpacesForCMD(app.serverDir(), L"\\") + L" && " +
+		L"\"Vectorworks Cloud Services Background Service\".exe" + L" ";
 	for (int i = 0; i < app.filesArray().size(); i++) {
 		this->command.append(Utils::placeQuotes(app.filesArray()[i]));
 		this->command.append(L" ");
