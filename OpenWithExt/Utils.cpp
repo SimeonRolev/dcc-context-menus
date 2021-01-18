@@ -3,6 +3,8 @@
 #include "stdafx.h"
 
 #include <algorithm>
+#include <stdexcept>
+#include <iostream>
 #include <fstream>
 #include <vector>
 #include <string>
@@ -108,13 +110,16 @@ HRESULT Utils::processPathByName(const wstring &appName, wstring &out) {
 }
 
 
-int Utils::envFromAppName(const wstring &installedApp) {
-	int env_ = -1;
-	if (installedApp.compare(L"vectorworks-cloud-services") == 0) env_ = 0;
+wstring Utils::envFromAppName(const wstring &installedApp) {
+	wstring env_;
+	wstring baseName = L"vectorworks-cloud-services";
+	// .startswith check.
+	if (installedApp.rfind(baseName, 0) != 0) throw std::runtime_error("Error: cant get DCC label");
+
+	if (installedApp.compare(baseName) == 0) env_ = L"";
 	else {
-		for (int i = 1; i < sizeof(ENV_ARRAY) / sizeof(ENV_ARRAY[0]); i++) {
-			if (installedApp.rfind(ENV_ARRAY[i]) != wstring::npos) env_ = i;
-		}
+		std::size_t found = installedApp.find_last_of(L"-");
+		env_ = installedApp.substr(found + 1);
 	}
 	return env_;
 }
@@ -225,4 +230,30 @@ wstring Utils::getActions(const vector <wstring> &filesArray_) {
 		}
 	)) return EXT_JPEG;
 	return L"NONE";
+}
+
+wstring Utils::getLogFilePath() {
+	wstring TempPath;
+	wchar_t wcharPath[MAX_PATH];
+	if (GetTempPathW(MAX_PATH, wcharPath))
+		TempPath = wcharPath;
+	return TempPath + L"\\vcs-dcc-ctx-actions-log.txt";
+}
+
+void Utils::log(const wstring content) {
+	std::wofstream myfile;
+	myfile.open(LOG_FILE_PATH, fstream::out | fstream::app);
+	myfile << content + L"\n";
+	myfile.close();
+}
+
+int Utils::deleteLogFile() {
+	const wchar_t* wcs = LOG_FILE_PATH.c_str();
+
+	if (_wremove(wcs) == 0) {
+		return 0;
+	}
+	else {
+		return -1;
+	}
 }

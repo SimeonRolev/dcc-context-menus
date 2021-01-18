@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 
+#include "Utils.h"
+
 using namespace std;
 
 static const wstring EXT_VWX(L"vwx");
@@ -18,18 +20,5 @@ static const wstring EXT_BMP(L"bmp");
 
 static const wstring EXT_SINGLE_FOLDER(L"SINLE_FOLDER");
 
-static const wstring ENV_PROD(L"prod");
-static const wstring ENV_BETA(L"beta");
-static const wstring ENV_QA(L"qa");
-static const wstring ENV_DEVEL(L"devel");
-static const wstring ENV_POLARIS(L"polaris");
-static const wstring ENV_ARRAY[] = { ENV_PROD, ENV_BETA, ENV_QA, ENV_DEVEL, ENV_POLARIS };
-
-static const wstring PROD_CONFIG(L"dcc.main.prod_settings");
-static const wstring BETA_CONFIG(L"dcc.main.beta_settings");
-static const wstring QA_CONFIG(L"dcc.main.beta_settings");
-static const wstring DEV_CONFIG(L"dcc.main.test_settings");
-static const wstring POLARIS_CONFIG(L"dcc.main.test_settings");
-static const wstring ENV_CONFIG_ARRAY[] = { PROD_CONFIG, BETA_CONFIG, QA_CONFIG, DEV_CONFIG, POLARIS_CONFIG };
-
 static const wstring ACTIVE_SESSION_FN(L"active_session.json");
+static const wstring LOG_FILE_PATH(Utils::getLogFilePath());

@@ -16,7 +16,7 @@ public:
 	~Application();
 
 private:
-	int env_ = -1;
+	wstring env_;
 
 	map<wstring, wstring> paths_;
 
@@ -35,7 +35,7 @@ public:
 	HRESULT parseFile(const wstring &entry);
 
 	// Getters
-	int env() { return env_; }
+	wstring env() { return env_; }
 
 	wstring localApp() { return paths_[L"LOCAL_APP"]; }
 	wstring localAppProgs() { return paths_[L"LOCAL_APP_PROGS"]; }
@@ -46,8 +46,6 @@ public:
 
 	wstring installedApp() { return paths_[L"installedApp_"]; }
 	wstring bgSrvCmd() { return paths_[L"bgSrvCmd_"]; }
-
-	wstring label() { return ENV_ARRAY[env()]; }
 
 	wstring syncDir() { return syncDir_; }
 	wstring dropboxDir() { return dropboxDir_; }

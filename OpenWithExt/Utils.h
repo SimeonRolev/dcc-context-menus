@@ -21,7 +21,7 @@ public:
 	static HRESULT readJsonFile(const wstring &path, const char* key, wstring &out);
 	static HRESULT Utils::processPathByName(const wstring &appName, wstring &out);
 
-	static int envFromAppName(const wstring &installedApp);
+	static wstring envFromAppName(const wstring &installedApp);
 
 	static bool isVWXType(wstring ext);
 	static bool isSingleFolderType(wstring ext);
@@ -34,4 +34,8 @@ public:
 	static wstring placeQuotes(const wstring &input);
 	static wstring wrapSpacesForCMD(const wstring &text, wchar_t* sep);
 	static wstring getActions(const vector <wstring> &filesArray_);
+
+	static wstring getLogFilePath();
+	static void log(const wstring content);
+	static int deleteLogFile();
 };
